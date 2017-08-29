@@ -1,8 +1,10 @@
 require "minority/version"
 require "minority/fun"
+require "minority/controllers"
 
-Minority::Fun.motd
 
 module Minority
-  # Your code goes here...
+  # fun on load
+  Minority::Fun.motd
+
 end
