@@ -1,9 +1,8 @@
 #!/usr/bin/env ruby
 require 'puma/cli'
 
-puma_config = File.expand_path(__FILE__, "../../config/puma.rb")
-puts puma_config
-cli = Puma::CLI.new [puma_config]
+puma_config = File.expand_path("../../config/puma.rb", __FILE__)
+cli = Puma::CLI.new ['-C', puma_config]
 cli.run
 
 
