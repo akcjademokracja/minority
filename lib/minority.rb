@@ -1,6 +1,8 @@
 require "minority/version"
+require "minority/fun"
 
-puts "MINORITY !"
+Minority::Fun.motd
+
 module Minority
   # Your code goes here...
 end
