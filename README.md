@@ -8,10 +8,11 @@ They could hopefully become mainstream one day. Before this happens, though, the
 
 Add to your Gemfile
 
-
+```
 group :minority do
   gem 'minority', git: "https://github.com/akcjademokracja/minority", branch: "master"
 end
+```
 
 ## Development
 
