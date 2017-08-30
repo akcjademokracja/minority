@@ -28,7 +28,17 @@ module Minority
 
                   GROUP BY d.member_id HAVING COUNT(*) >= 2
                 ) as t}
-      }
+      },
+      'has-taken-action-type' =>
+      {
+        optgroup: 'Actions',
+        id: 'has-taken-csl-action',
+        label: "Has taken any CSL action",
+        operators: ['equal', 'not_equal'],
+        type: 'string',
+        input: 'none',
+        sql: "SELECT member_id FROM member_actions ma JOIN actions a ON a.id = ma.action_id WHERE a.technical_type = 'cby_petition'",
+      },
     }
 
     included do
