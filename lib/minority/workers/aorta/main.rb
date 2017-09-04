@@ -12,7 +12,6 @@ class AortaMainWorker
 		ch = @conn.create_channel
 		q = ch.queue(ENV['AMQP_QUEUE_NAME'], {durable: true})
 
-		begin
 			q.subscribe(block: false, manual_ack: true) do |delivery_info, properties, payload|
 				message_type, message_details = JSON.parse(payload)
 
@@ -25,10 +24,8 @@ class AortaMainWorker
 					AortaCheckTicketWorker.perform_async(message_details)
 				else
 				end
+				
 			end
-		ensure
-			@conn.close
-		end	
 	end
 
 end
