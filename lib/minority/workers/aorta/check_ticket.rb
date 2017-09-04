@@ -84,20 +84,17 @@ class AortaCheckTicketWorker
                 is_member_subscribed = !MemberSubscription.where(member_id: member.id).first.unsubscribed_at
                 member_description = "Donated: #{member.donations_count || 0} times; highest: #{member.highest_donation || 0}, subscribed: #{is_member_subscribed}."
                 # Cost: 1 FreshDesk API credit
-                fd_requester_update_status = fd_update_requester_info(auth, result[:requester_id], member_description)
-                puts "Requester description update failed! FreshDesk returned #{fd_requester_update_status}." unless fd_requester_update_status == "200 OK"
+                fd_update_requester_info(auth, result[:requester_id], member_description)
             else
                 member_description = "No person by that email in Identity."
                 # Save 1 API call by not sending that to FreshDesk
-                fd_requester_update_status = fd_update_requester_info(auth, result[:requester_id], member_description)
-                puts "Requester description update failed! FreshDesk returned #{fd_requester_update_status}." unless fd_requester_update_status == "200 OK"
+                fd_update_requester_info(auth, result[:requester_id], member_description)
             end
 
             # Update the ticket's tags at the end
             # Cost: 1 FreshDesk API credit
             new_tags << "aorta_processed"
-            fd_ticket_tag_update_status = fd_update_ticket_tags(auth, ticket_id, new_tags)
-            puts "Ticket tag update failed! FreshDesk returned #{fd_ticket_update_status}." unless fd_ticket_tag_update_status == "200 OK"
+            fd_update_ticket_tags(auth, ticket_id, new_tags)
         end
     end
 
