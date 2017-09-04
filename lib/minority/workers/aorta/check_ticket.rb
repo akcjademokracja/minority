@@ -56,7 +56,7 @@ class AortaCheckTicketWorker
                 unless mailing_ids.empty?
                     # This is an array of Mailing objects or an array containing a single Mailing object
                     mailings_by_tags = Mailing.where(id: mailing_ids)
-                    mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
+                    mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
                 else
                     mailings_by_tags_campaigns = []
                 end
@@ -67,7 +67,7 @@ class AortaCheckTicketWorker
                 mailings_by_subject = Mailing.where(subject: result[:subject])
 
                 unless mailings_by_subject.empty?
-                    mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0]}
+                    mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
                 else
                     mailings_by_subject_campaigns = []
                 end
@@ -98,6 +98,7 @@ class AortaCheckTicketWorker
             # Update the ticket's tags at the end
             # Cost: 1 FreshDesk API credit
             new_tags << "aorta_processed"
+            p new_tags
             fd_update_ticket_tags(auth, ticket_id, new_tags)
         end
     end
