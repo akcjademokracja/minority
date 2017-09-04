@@ -4,9 +4,10 @@ class AortaCheckTicketWorker
     include Sidekiq::Worker
 
     def perform(ticket_id)
+        ticket_id = ticket_id.to_i
         auth = {:username => ENV['FRESHDESK_API_TOKEN'], :password => "X"}
         # Cost: 2 FreshDesk API credits
-        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}?include=requester", :basic_auth => auth)
+        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id}?include=requester", :basic_auth => auth)
         result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
 
         # Throw an exception upon hitting the rate limit
