@@ -20,7 +20,7 @@ class AortaMainWorker
 					# After acknowledging, delegate the work to a specified worker
 
 					ch.ack(delivery_info.delivery_tag)
-					AortaCheckTicketWorker.perform(message_details)
+					AortaCheckTicketWorker.perform_async(message_details)
 				else
 				end
 			end
