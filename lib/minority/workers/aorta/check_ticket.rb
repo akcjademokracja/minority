@@ -10,7 +10,7 @@ class FreshDeskError < StandardError
     end
 end
 
-class AortaFreshdeskCheckTicketWorker
+class AortaCheckTicketWorker
     #include Sidekiq::Worker
 
     def self.perform(ticket_id)
