@@ -1,7 +1,5 @@
-
-
 class AortaCheckTicketWorker
-    #include Sidekiq::Worker
+    include Sidekiq::Worker
 
     def self.perform(ticket_id)
         auth = {:username => ENV['FRESHDESK_API_TOKEN'], :password => "X"}
