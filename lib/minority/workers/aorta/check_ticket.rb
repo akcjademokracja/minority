@@ -1,7 +1,7 @@
 class AortaCheckTicketWorker
     include Sidekiq::Worker
 
-    def self.perform(ticket_id)
+    def perform(ticket_id)
         auth = {:username => ENV['FRESHDESK_API_TOKEN'], :password => "X"}
         # Cost: 2 FreshDesk API credits
         response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}?include=requester", :basic_auth => auth)

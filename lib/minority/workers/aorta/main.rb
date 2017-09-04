@@ -1,4 +1,5 @@
 class AortaMainWorker
+	include Sidekiq::Worker
 
 	def initialize
 		@conn = Bunny.new(ENV['AMQP_URL'])
