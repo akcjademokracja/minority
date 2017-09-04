@@ -101,7 +101,7 @@ class AortaCheckTicketWorker
 
     private
 
-    def self.fd_update_requester_info(auth, requester_id, new_requester_description)
+    def fd_update_requester_info(auth, requester_id, new_requester_description)
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/contacts/#{requester_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {description: new_requester_description}.to_json)
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
             raise FreshDeskRateLimitHit.new(response.response["retry-after"])
@@ -111,7 +111,7 @@ class AortaCheckTicketWorker
         return response.response["status"]
     end
 
-    def self.fd_update_ticket_tags(auth, ticket_id, new_tags)
+    def fd_update_ticket_tags(auth, ticket_id, new_tags)
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {tags: new_tags}.to_json)
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
             raise FreshDeskRateLimitHit.new(response.response["retry-after"])
