@@ -45,29 +45,31 @@ class AortaCheckTicketWorker
                 # Now we have to get mailings with that subject and extract campaign names from them
                 # Then, we assign these campaign names to FreshDesk tickets as tags
 
-                # An array of IDs matching the criteria, ex. [101, 102]
+                # BY_TAGS
+
+                # An array of IDs matching the criteria, ex. [101, 102] or an empty array if nothing found
                 mailings_ids = Mailing.joins(:test_cases).
                                    where("mailing_test_cases.template LIKE ?", "%#{result[:subject]}%").
                                    select('DISTINCT mailings.id').pluck(:id)
 
-                # BY_TAGS     
-
-                # Array of Mailing objects or just [Mailing]
-                mailings_ids.empty? ? mailings_by_tags = [] : mailings_by_tags = Mailing.where(id: mailings_ids)
-
-                # Extract the campaign names
-                mailings_by_tags.empty? ? mailings_by_tags_campaigns = [] : mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
-
+                unless mailing_ids.empty?
+                    # This is an array of Mailing objects or an array containing a single Mailing object
+                    mailings_by_tags = Mailing.where(id: mailings_ids)
+                    mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
+                else
+                    mailings_by_tags_campaigns = []
+                end
 
                 # BY_SUBJECT
 
-                # An array of Mailing objects or just one Mailing object is being returned
-                mailings_by_subject = []
-                mailings_by_subject << Mailing.find_by(subject: result[:subject]) unless Mailing.find_by(subject: result[:subject]).nil?
-                
-                # Extract the campaign names
-                mailings_by_subject.empty? ? mailings_by_subject_campaigns = [] : mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0]}
+                # An array of Mailing objects or an array containing a single Mailing object
+                mailings_by_subject = Mailing.where(subject: result[:subject])
 
+                unless mailings_by_subject.empty?
+                    mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0]}
+                else
+                    mailings_by_subject_campaigns = []
+                end
 
                 # FINAL OPERATION
                 
