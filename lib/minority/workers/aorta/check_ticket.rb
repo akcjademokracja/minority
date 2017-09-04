@@ -1,14 +1,4 @@
-class FreshDeskRateLimitHit < StandardError
-    def initialize(retry_after)
-        super("FreshDesk rate limit hit! New API credits available in #{retry_after/60} minutes.")
-    end
-end  
 
-class FreshDeskError < StandardError
-    def initialize(message)
-        super(message)
-    end
-end
 
 class AortaCheckTicketWorker
     #include Sidekiq::Worker
@@ -17,13 +7,13 @@ class AortaCheckTicketWorker
         auth = {:username => ENV['FRESHDESK_API_TOKEN'], :password => "X"}
         # Cost: 2 FreshDesk API credits
         response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}?include=requester", :basic_auth => auth)
-        result = {email: response["requester"]["email"], requester_id: response["requester"]["requester_id"] subject: response["subject"], type: response["type"], tags: response["tags"]}
+        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
 
         # Throw an exception upon hitting the rate limit
-        if response.response["x-ratelimit-remaining"] < 2 or response.response["code"] == 429
-            raise FreshDeskRateLimitHit(response.response["retry-after"])
-        elsif response.response["code"] != 200
-            raise FreshDeskError("Something went wrong! Status code: #{response.response["code"]}")
+        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
+            raise AortaCheckTicketWorker::FreshDeskRateLimitHit.new(response.response["retry-after"])
+        elsif response.response["status"] != "200 OK"
+            raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
             
         new_tags = []
@@ -53,22 +43,33 @@ class AortaCheckTicketWorker
 
                 # Now we have to get mailings with that subject and extract campaign names from them
                 # Then, we assign these campaign names to FreshDesk tickets as tags
+
+                # An array of IDs matching the criteria, ex. [101, 102]
                 mailings_ids = Mailing.joins(:test_cases).
                                    where("mailing_test_cases.template LIKE ?", "%#{result[:subject]}%").
                                    select('DISTINCT mailings.id').pluck(:id)
 
-                # Array of Mailing objects
-                mailings_by_tags = Mailing.where(id: mailings_ids)
+                # BY_TAGS     
+
+                # Array of Mailing objects or just [Mailing]
+                mailings_ids.empty? ? mailings_by_tags = [] : mailings_by_tags = Mailing.where(id: mailings_ids)
 
                 # Extract the campaign names
-                mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
+                mailings_by_tags.empty? ? mailings_by_tags_campaigns = [] : mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
 
-                # Array of Mailing objects
-                mailings_by_subject = Mailing.find_by(subject: result[:subject])
 
+                # BY_SUBJECT
+
+                # An array of Mailing objects or just one Mailing object is being returned
+                mailings_by_subject = []
+                mailings_by_subject << Mailing.find_by(subject: result[:subject]) unless Mailing.find_by(subject: result[:subject]).nil?
+                
                 # Extract the campaign names
-                mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0]}
+                mailings_by_subject.empty? ? mailings_by_subject_campaigns = [] : mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0]}
 
+
+                # FINAL OPERATION
+                
                 # Add campaign names to tags
                 new_tags = new_tags + (mailings_by_tags_campaigns + mailings_by_subject_campaigns).uniq
             else
@@ -81,43 +82,57 @@ class AortaCheckTicketWorker
             # Get all unsubs with: MemberSubscription.where("member_subscriptions.unsubscribed_at IS NOT ?", nil).to_a
             if member
                 is_member_subscribed = !MemberSubscription.where(member_id: member.id).first.unsubscribed_at
-                member_description = "aorta-ruby v0.0.8; donated: #{member.donations_count} times; highest: #{member.highest_donation}, subscribed: #{is_member_subscribed}"
+                member_description = "Donated: #{member.donations_count || 0} times; highest: #{member.highest_donation || 0}, subscribed: #{is_member_subscribed}."
                 # Cost: 1 FreshDesk API credit
-                fd_requester_update_status = fd_update_requester_info(member_description)
-                puts "Requester description update failed! FreshDesk returned #{fd_requester_update_status}." unless fd_requester_update_status == 200
+                fd_requester_update_status = fd_update_requester_info(auth, result[:requester_id], member_description)
+                puts "Requester description update failed! FreshDesk returned #{fd_requester_update_status}." unless fd_requester_update_status == "200 OK"
             else
-                member_description = "aorta-ruby v0.0.8; no person by that email in Identity"
+                member_description = "No person by that email in Identity."
                 # Save 1 API call by not sending that to FreshDesk
-                fd_requester_update_status = fd_update_requester_info(member_description)
-                puts "Requester description update failed! FreshDesk returned #{fd_requester_update_status}." unless fd_requester_update_status == 200
+                fd_requester_update_status = fd_update_requester_info(auth, result[:requester_id], member_description)
+                puts "Requester description update failed! FreshDesk returned #{fd_requester_update_status}." unless fd_requester_update_status == "200 OK"
             end
 
             # Update the ticket's tags at the end
             # Cost: 1 FreshDesk API credit
             new_tags << "aorta_processed"
-            fd_ticket_tag_update_status = fd_update_ticket_tags(new_tags)
-            puts "Ticket tag update failed! FreshDesk returned #{fd_ticket_update_status}." unless fd_ticket_tag_update_status == 200
+            fd_ticket_tag_update_status = fd_update_ticket_tags(auth, ticket_id, new_tags)
+            puts "Ticket tag update failed! FreshDesk returned #{fd_ticket_update_status}." unless fd_ticket_tag_update_status == "200 OK"
         end
     end
 
-    def fd_update_requester_info(new_member_description)
-        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/contacts/#{requester_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {description: member_description}.to_json)
-        if response.response["x-ratelimit-remaining"] < 2 or response.response["code"] == 429
-            raise FreshDeskRateLimitHit(response.response["retry-after"])
-        elsif response.response["code"] != 200
-            raise FreshDeskError("Something went wrong! Status code: #{response.response["code"]}")
+    private
+
+    def self.fd_update_requester_info(auth, requester_id, new_requester_description)
+        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/contacts/#{requester_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {description: new_requester_description}.to_json)
+        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
+            raise FreshDeskRateLimitHit.new(response.response["retry-after"])
+        elsif response.response["status"] != "200 OK"
+            raise FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
-        return response.response["code"]
+        return response.response["status"]
     end
 
-    def fd_update_ticket_tags(new_tags)
+    def self.fd_update_ticket_tags(auth, ticket_id, new_tags)
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {tags: new_tags}.to_json)
-        if response.response["x-ratelimit-remaining"] < 2 or response.response["code"] == 429
-            raise FreshDeskRateLimitHit(response.response["retry-after"])
-        elsif response.response["code"] != 200
-            raise FreshDeskError("Something went wrong! Status code: #{response.response["code"]}")
+        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
+            raise FreshDeskRateLimitHit.new(response.response["retry-after"])
+        elsif response.response["status"] != "200 OK"
+            raise FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
-        return response.response["code"]
+        return response.response["status"]
+    end
+
+    class FreshDeskRateLimitHit < StandardError
+        def initialize(retry_after)
+            super("FreshDesk rate limit hit! New API credits available in #{retry_after/60} minutes.")
+        end
+    end  
+
+    class FreshDeskError < StandardError
+        def initialize(message)
+            super(message)
+        end
     end
 
 end
