@@ -1,3 +1,5 @@
+require 'httparty'
+
 class AortaCheckTicketWorker
     include Sidekiq::Worker
 

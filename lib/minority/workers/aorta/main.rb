@@ -1,3 +1,5 @@
+require 'bunny'
+
 class AortaMainWorker
 	include Sidekiq::Worker
 
