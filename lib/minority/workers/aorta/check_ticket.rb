@@ -5,10 +5,9 @@ class AortaCheckTicketWorker
 
     def perform(ticket_id)
         ticket_id = ticket_id.to_i
-        auth = {:username => ENV['FRESHDESK_API_TOKEN'], :password => "X"}
+        auth = {username: ENV['FRESHDESK_API_TOKEN'], password: "X"}
         # Cost: 2 FreshDesk API credits
-        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id}?include=requester", :basic_auth => auth)
-        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
+        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id}?include=requester", basic_auth: auth)
 
         # Throw an exception upon hitting the rate limit
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
@@ -16,6 +15,8 @@ class AortaCheckTicketWorker
         elsif response.response["status"] != "200 OK"
             raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
+
+        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
             
         new_tags = []
         
@@ -48,13 +49,13 @@ class AortaCheckTicketWorker
                 # BY_TAGS
 
                 # An array of IDs matching the criteria, ex. [101, 102] or an empty array if nothing found
-                mailings_ids = Mailing.joins(:test_cases).
+                mailing_ids = Mailing.joins(:test_cases).
                                    where("mailing_test_cases.template LIKE ?", "%#{result[:subject]}%").
                                    select('DISTINCT mailings.id').pluck(:id)
 
                 unless mailing_ids.empty?
                     # This is an array of Mailing objects or an array containing a single Mailing object
-                    mailings_by_tags = Mailing.where(id: mailings_ids)
+                    mailings_by_tags = Mailing.where(id: mailing_ids)
                     mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
                 else
                     mailings_by_tags_campaigns = []
