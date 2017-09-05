@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'httparty'
 
 class AortaCheckTicketWorker
@@ -120,7 +121,7 @@ class AortaCheckTicketWorker
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
             raise FreshDeskRateLimitHit.new(response.response["retry-after"])
         elsif response.response["status"] != "200 OK"
-            raise FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
+            raise FreshDeskError.new("Something went wrong! Status: #{response.response['status']}: #{response.response['body']}")
         end
         return response.response["status"]
     end
