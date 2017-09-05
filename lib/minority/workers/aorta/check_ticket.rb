@@ -4,10 +4,10 @@ class AortaCheckTicketWorker
     include Sidekiq::Worker
 
     def perform(ticket_id)
-        auth = {:username => ENV['FRESHDESK_API_TOKEN'], :password => "X"}
+        ticket_id = ticket_id.to_i
+        auth = {username: ENV['FRESHDESK_API_TOKEN'], password: "X"}
         # Cost: 2 FreshDesk API credits
-        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}?include=requester", :basic_auth => auth)
-        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
+        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id}?include=requester", basic_auth: auth)
 
         # Throw an exception upon hitting the rate limit
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
@@ -15,6 +15,8 @@ class AortaCheckTicketWorker
         elsif response.response["status"] != "200 OK"
             raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
+
+        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
             
         new_tags = []
         
@@ -44,29 +46,31 @@ class AortaCheckTicketWorker
                 # Now we have to get mailings with that subject and extract campaign names from them
                 # Then, we assign these campaign names to FreshDesk tickets as tags
 
-                # An array of IDs matching the criteria, ex. [101, 102]
-                mailings_ids = Mailing.joins(:test_cases).
+                # BY_TAGS
+
+                # An array of IDs matching the criteria, ex. [101, 102] or an empty array if nothing found
+                mailing_ids = Mailing.joins(:test_cases).
                                    where("mailing_test_cases.template LIKE ?", "%#{result[:subject]}%").
                                    select('DISTINCT mailings.id').pluck(:id)
 
-                # BY_TAGS     
-
-                # Array of Mailing objects or just [Mailing]
-                mailings_ids.empty? ? mailings_by_tags = [] : mailings_by_tags = Mailing.where(id: mailings_ids)
-
-                # Extract the campaign names
-                mailings_by_tags.empty? ? mailings_by_tags_campaigns = [] : mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0]}
-
+                unless mailing_ids.empty?
+                    # This is an array of Mailing objects or an array containing a single Mailing object
+                    mailings_by_tags = Mailing.where(id: mailing_ids)
+                    mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
+                else
+                    mailings_by_tags_campaigns = []
+                end
 
                 # BY_SUBJECT
 
-                # An array of Mailing objects or just one Mailing object is being returned
-                mailings_by_subject = []
-                mailings_by_subject << Mailing.find_by(subject: result[:subject]) unless Mailing.find_by(subject: result[:subject]).nil?
-                
-                # Extract the campaign names
-                mailings_by_subject.empty? ? mailings_by_subject_campaigns = [] : mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0]}
+                # An array of Mailing objects or an array containing a single Mailing object
+                mailings_by_subject = Mailing.where(subject: result[:subject])
 
+                unless mailings_by_subject.empty?
+                    mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
+                else
+                    mailings_by_subject_campaigns = []
+                end
 
                 # FINAL OPERATION
                 
@@ -94,13 +98,14 @@ class AortaCheckTicketWorker
             # Update the ticket's tags at the end
             # Cost: 1 FreshDesk API credit
             new_tags << "aorta_processed"
+            p new_tags
             fd_update_ticket_tags(auth, ticket_id, new_tags)
         end
     end
 
     private
 
-    def self.fd_update_requester_info(auth, requester_id, new_requester_description)
+    def fd_update_requester_info(auth, requester_id, new_requester_description)
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/contacts/#{requester_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {description: new_requester_description}.to_json)
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
             raise FreshDeskRateLimitHit.new(response.response["retry-after"])
@@ -110,7 +115,7 @@ class AortaCheckTicketWorker
         return response.response["status"]
     end
 
-    def self.fd_update_ticket_tags(auth, ticket_id, new_tags)
+    def fd_update_ticket_tags(auth, ticket_id, new_tags)
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {tags: new_tags}.to_json)
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
             raise FreshDeskRateLimitHit.new(response.response["retry-after"])
