@@ -18,9 +18,13 @@ class AortaCheckTicketWorker
         end
 
         result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
+
+        # If the subject is empty, stop processing the ticket; FreshDesk will throw 400 Bad Request at you if you try updating a ticket without a subject.
+        # Thanks FreshDesk!
+        return if result[:subject].empty?
             
         new_tags = []
-        
+
         unless result[:tags].include? "aorta_processed"
             p "Not processed!"
 
