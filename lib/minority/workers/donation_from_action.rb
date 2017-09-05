@@ -19,6 +19,8 @@ class DonationFromActionWorker
 
     regular_donation = update_regular_donation(donation, member_action)
 
+    member_action.member.recalculate_donation_statistics
+
     [donation, regular_donation]
     # member_action.by_key(:)
     # amount -> amount

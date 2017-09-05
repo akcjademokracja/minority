@@ -36,8 +36,11 @@ They could hopefully become mainstream one day. Before this happens, though, the
   spec.add_runtime_dependency "puma", "~> 3.9.1"
   spec.add_runtime_dependency "bunny", "~> 2.7.0"
   spec.add_runtime_dependency "freshdesk-ruby", "~> 0.1.0"
+  spec.add_runtime_dependency "httparty", "~> 0.15.6"
 
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
 end
+
+
