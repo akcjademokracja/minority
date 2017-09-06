@@ -38,8 +38,6 @@ class AortaMainWorker
                     end
                 
                 end
-            else
-                return
             end
 
         rescue Bunny::PreconditionFailed => e
