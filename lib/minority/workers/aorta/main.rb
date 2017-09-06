@@ -18,7 +18,7 @@ class AortaMainWorker
             ch = @conn.create_channel
             q = ch.queue(ENV['AMQP_QUEUE_NAME'], durable: true)
 
-            q.subscribe(block: false, manual_ack: true) do |delivery_info, properties, payload|
+            q.subscribe(block: true, manual_ack: true) do |delivery_info, properties, payload|
                 message_type, message_details = JSON.parse(payload)
 
                 case message_type
@@ -31,9 +31,7 @@ class AortaMainWorker
                 else
                 end
                 
-            end
-
-            
+            end            
         rescue Bunny::PreconditionFailed => e
             puts "Channel-level exception! Code: #{e.channel_close.reply_code}, message: #{e.channel_close.reply_text}".squish
         ensure
