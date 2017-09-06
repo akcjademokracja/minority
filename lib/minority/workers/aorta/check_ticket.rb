@@ -132,6 +132,7 @@ class AortaCheckTicketWorker
 
     class FreshDeskRateLimitHit < StandardError
         def initialize(retry_after)
+            retry_after = retry_after.to_i
             super("FreshDesk rate limit hit! New API credits available in #{retry_after/60} minutes.")
         end
     end  
