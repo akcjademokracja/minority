@@ -3,6 +3,7 @@ require 'httparty'
 
 class AortaCheckTicketWorker
     include Sidekiq::Worker
+    sidekiq_options unique: :until_executing
 
     def perform(ticket_id)
         ticket_id = ticket_id.to_i
