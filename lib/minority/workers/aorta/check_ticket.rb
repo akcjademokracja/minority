@@ -13,7 +13,7 @@ class AortaCheckTicketWorker
         # Throw an exception upon hitting the rate limit
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
           # reschedule it for later
-          AortaCheckTicketWorker.perform_in(response.response["retry-after"] + 10, ticket_id)
+          AortaCheckTicketWorker.perform_in(response.response["retry-after"].to_i + 10, ticket_id)
           return
         elsif response.response["status"] != "200 OK"
             raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
