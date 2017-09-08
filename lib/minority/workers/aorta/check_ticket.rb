@@ -126,7 +126,14 @@ class AortaCheckTicketWorker
     end
 
     def fd_update_ticket_tags(auth, ticket_id, new_tags)
-        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {tags: new_tags}.to_json)
+        
+        unless new_tags.include? "wypisano"
+            request_body = {tags: new_tags}.to_json
+        else
+            request_body = {tags: new_tags, type: "Wypisany", status: 5}.to_json
+        end
+
+        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body)
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
             raise FreshDeskRateLimitHit.new(response.response["retry-after"])
         elsif response.response["status"] != "200 OK"
