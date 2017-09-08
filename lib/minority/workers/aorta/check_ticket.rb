@@ -130,7 +130,7 @@ class AortaCheckTicketWorker
         unless new_tags.include? "wypisano"
             request_body = {tags: new_tags}.to_json
         else
-            request_body = {tags: new_tags, type: "Wypisany", status: 5}.to_json
+            request_body = {tags: new_tags, type: "Wypisany", status: 4}.to_json
         end
 
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body)
