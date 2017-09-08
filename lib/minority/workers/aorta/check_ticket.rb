@@ -17,7 +17,7 @@ class AortaCheckTicketWorker
             raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
 
-        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"]}
+        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"], source: response["source"]}
 
         # If the subject is empty, stop processing the ticket; FreshDesk will throw 400 Bad Request at you if you try updating a ticket without a subject.
         # Thanks FreshDesk!
@@ -102,9 +102,11 @@ class AortaCheckTicketWorker
 
             # Update the ticket's tags at the end
             # Cost: 1 FreshDesk API credit
+
+            # If the source is not an e-mail, you get errors upon trying to update the ticket. 
+            # Thanks FreshDesk!
             new_tags << "aorta_processed"
-            p new_tags
-            fd_update_ticket_tags(auth, ticket_id, new_tags)
+            fd_update_ticket_tags(auth, ticket_id, new_tags) unless result[:source].to_i != 1
         end
     end
 
