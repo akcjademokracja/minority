@@ -3,6 +3,7 @@ require 'httparty'
 
 class AortaCheckTicketWorker
     include Sidekiq::Worker
+    sidekiq_options unique: :until_executing
 
     def perform(ticket_id)
         ticket_id = ticket_id.to_i
@@ -12,7 +13,9 @@ class AortaCheckTicketWorker
 
         # Throw an exception upon hitting the rate limit
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
-            raise AortaCheckTicketWorker::FreshDeskRateLimitHit.new(response.response["retry-after"])
+          # reschedule it for later
+          AortaCheckTicketWorker.perform_in(response.response["retry-after"].to_i + 10, ticket_id)
+          return
         elsif response.response["status"] != "200 OK"
             raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
@@ -22,7 +25,7 @@ class AortaCheckTicketWorker
         # If the subject is empty, stop processing the ticket; FreshDesk will throw 400 Bad Request at you if you try updating a ticket without a subject.
         # Thanks FreshDesk!
         return if result[:subject].empty?
-            
+
         new_tags = []
 
         unless result[:tags].include? "aorta_processed"
