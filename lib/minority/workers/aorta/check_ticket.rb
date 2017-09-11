@@ -21,7 +21,7 @@ class AortaCheckTicketWorker
 
         new_tags = []
 
-        unless result[:type] == "Wypisanie" or result[:type] == "Usunięcie danych"
+        unless result[:type] == "Wypisanie" or result[:type] == "Usunięcie danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
             # If the ticket isn't an opt-out mailing, check if it's been processed already
 
             unless result[:tags].include? "aorta_processed"
@@ -46,21 +46,33 @@ class AortaCheckTicketWorker
             end
 
         else
-            # Opt-out/forget operations
+            # Opt-out/forget operations, adding to custom lists etc.
 
-            if result[:type] == "Wypisanie"
-                print "Unsubscribing member... "
-                Member::GDPR.optout(member, "Aorta opt-out") if member
-                new_tags << "wypisano"
-                puts "unsubscribed"
-            end
-
-            if result[:type] == "Usunięcie danych"
+            case result[:type]
+            when "Usunięcie danych"
                 print "Forgetting member... "
+                Member::GDPR.optout(member, "Aorta opt-out") if member
                 # Not implemented yet
                 #Member::GDPR.forget(member, reason) if member
                 new_tags << "zapomniano"
                 puts "forgotten"
+            when "Wypisanie"
+                print "Unsubscribing member... "
+                Member::GDPR.optout(member, "Aorta opt-out") if member
+                new_tags << "wypisano"
+                puts "unsubscribed"
+            when "Mało kasy"
+                print "Adding member to non-donation-asking group... "
+                low_money_list = List.find_by(name: "mało kasy")
+                low_money_list << member
+                new_tags << "dodano_do_malo_kasy"
+                puts "done"
+            when "Mniej maili"
+                print "Adding member to lower mailing count list..."
+                low_mailing_list = List.find_by(name: "mniej maili")
+                low_mailing_list << member
+                new_tags << "dodano_do_mniej_maili"
+                puts "done"
             end
 
             # Assign campaign names to tags if the ticket is a reply to some mailing
