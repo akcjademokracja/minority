@@ -45,6 +45,7 @@ class AortaCheckTicketWorker
 
             else
                 puts "#{ticket_id}: entry processed, skipping."
+                return
             end
 
         else
