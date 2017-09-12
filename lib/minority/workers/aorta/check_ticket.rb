@@ -10,7 +10,7 @@ class AortaCheckTicketWorker
         ticket_id = ticket_id.to_i
         auth = {username: ENV['FRESHDESK_API_TOKEN'], password: "X"}
         
-        result = fd_get_ticket(ticket_id, auth)
+        result = fd_get_ticket(auth, ticket_id)
 
         # If the subject is empty, stop processing the ticket; FreshDesk will throw 400 Bad Request at you if you try updating a ticket without a subject.
         # Thanks FreshDesk!
@@ -106,11 +106,11 @@ class AortaCheckTicketWorker
         if member
             is_member_subscribed = !MemberSubscription.where(member_id: member.id).first.unsubscribed_at
             member_description = "Donated: #{member.donations_count || 0} times; highest: #{member.highest_donation || 0}, subscribed: #{is_member_subscribed}."
-            fd_update_requester_info(auth, result[:requester_id], member_description)
+            fd_update_requester_info(auth, ticket_id, result[:requester_id], member_description)
         else
             member_description = "No person by that email in Identity."
             # Save 1 API call by not sending that to FreshDesk
-            fd_update_requester_info(auth, result[:requester_id], member_description)
+            fd_update_requester_info(auth, ticket_id, result[:requester_id], member_description)
         end
             
         # Update the ticket's tags at the end
@@ -123,15 +123,15 @@ class AortaCheckTicketWorker
 
     private
 
-    def fd_get_ticket(ticket_id, auth)
+    def fd_get_ticket(auth, ticket_id)
         # Cost: 2 FreshDesk API credits
         response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id}?include=requester", basic_auth: auth)
-        fd_rate_limit_check(response)
+        fd_rate_limit_check(ticket_id, response)
         result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"], source: response["source"]}
         return result
     end
 
-    def fd_rate_limit_check(response)
+    def fd_rate_limit_check(ticket_id, response)
         # Throw an exception upon hitting the rate limit
         if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
           # reschedule it for later
@@ -142,10 +142,10 @@ class AortaCheckTicketWorker
         end
     end
 
-    def fd_update_requester_info(auth, requester_id, new_requester_description)
+    def fd_update_requester_info(auth, ticket_id, requester_id, new_requester_description)
         # Cost: 1 FreshDesk API credit
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/contacts/#{requester_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {description: new_requester_description}.to_json)
-        fd_rate_limit_check(response)
+        fd_rate_limit_check(ticket_id, response)
         return response.response["status"]
     end
 
@@ -160,7 +160,7 @@ class AortaCheckTicketWorker
 
         # Cost: 1 FreshDesk API credit
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body)
-        fd_rate_limit_check(response)
+        fd_rate_limit_check(ticket_id, response)
     end
 
     def identity_get_mailing_info(subject)
