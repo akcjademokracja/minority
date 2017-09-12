@@ -76,6 +76,7 @@ class AortaCheckTicketWorker
             when "Wypisany"
                 # Aorta probably got this ticket, because FreshDesk executed some Supervisor rule, which updated the ticket again
                 puts "Member already unsubscribed."
+                return
             end
 
             # Assign campaign names to tags if the ticket is a reply to some mailing
