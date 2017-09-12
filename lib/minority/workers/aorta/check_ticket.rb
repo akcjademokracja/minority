@@ -21,7 +21,7 @@ class AortaCheckTicketWorker
 
         new_tags = []
 
-        unless result[:type] == "Wypisanie" or result[:type] == "Wypisany" or result[:type] == "Usunięcie danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
+        unless result[:type] == "Do wypisania" or result[:type] == "Wypisany" or result[:type] == "Do usunięcia danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
             # If the ticket isn't an opt-out mailing, check if it's been processed already
 
             unless result[:tags].include? "aorta_processed"
@@ -49,14 +49,14 @@ class AortaCheckTicketWorker
             # Opt-out/forget operations, adding to custom lists etc.
 
             case result[:type]
-            when "Usunięcie danych"
+            when "Do usunięcia danych"
                 print "Forgetting member... "
                 Member::GDPR.optout(member, "Aorta opt-out") if member
                 # Not implemented yet
                 #Member::GDPR.forget(member, reason) if member
                 new_tags << "zapomniano"
                 puts "forgotten"
-            when "Wypisanie"
+            when "Do wypisania"
                 print "Unsubscribing member... "
                 Member::GDPR.optout(member, "Aorta opt-out") if member
                 new_tags << "wypisano"
