@@ -21,7 +21,7 @@ class AortaCheckTicketWorker
 
         new_tags = []
 
-        unless result[:type] == "Wypisanie" or result[:type] == "Usunięcie danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
+        unless result[:type] == "Wypisanie" or result[:type] == "Wypisany" or result[:type] == "Usunięcie danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
             # If the ticket isn't an opt-out mailing, check if it's been processed already
 
             unless result[:tags].include? "aorta_processed"
@@ -73,6 +73,9 @@ class AortaCheckTicketWorker
                 low_mailing_list << member
                 new_tags << "dodano_do_mniej_maili"
                 puts "done"
+            when "Wypisany"
+                # Aorta probably got this ticket, because FreshDesk executed some Supervisor rule, which updated the ticket again
+                puts "Member already unsubscribed."
             end
 
             # Assign campaign names to tags if the ticket is a reply to some mailing
