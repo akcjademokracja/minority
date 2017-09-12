@@ -21,6 +21,8 @@ class AortaCheckTicketWorker
 
         new_tags = []
 
+        p result[:type]
+
         unless result[:type] == "Do wypisania" or result[:type] == "Wypisany" or result[:type] == "Do usunięcia danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
             # If the ticket isn't an opt-out mailing, check if it's been processed already
 
