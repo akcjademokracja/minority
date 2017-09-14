@@ -3,14 +3,16 @@ require 'httparty'
 
 class AortaCheckTicketWorker
     include Sidekiq::Worker
-    sidekiq_options unique: :until_executing
+    # If the worker doesn't complete their work in 4 minutes, because it is for example rate-limited...
+    # ...let the lock expire, since we *can* have duplicate workers with the same payload/ticket_id
+    sidekiq_options unique: :until_executing, log_duplicate_payload: true, lock_timeout: 4
 
     def perform(ticket_id)
 
-        ticket_id = ticket_id.to_i
+        @ticket_id = ticket_id.to_i
         auth = {username: ENV['FRESHDESK_API_TOKEN'], password: "X"}
         
-        result = fd_get_ticket(auth, ticket_id)
+        result = fd_get_ticket(auth)
 
         # If the subject is empty, stop processing the ticket; FreshDesk will throw 400 Bad Request at you if you try updating a ticket without a subject.
         # Thanks FreshDesk!
@@ -21,13 +23,14 @@ class AortaCheckTicketWorker
 
         new_tags = []
 
-        p result[:type]
+        puts "#{@ticket_id}: The ticket's type is #{result[:type]}."
 
         unless result[:type] == "Do wypisania" or result[:type] == "Wypisany" or result[:type] == "Do usunięcia danych" or result[:type] == "Mało kasy" or result[:type] == "Mniej maili"
             # If the ticket isn't an opt-out mailing, check if it's been processed already
 
             unless result[:tags].include? "aorta_processed"
-                puts "#{ticket_id}: Ticket not processed yet."
+
+                puts "#{@ticket_id}: Ticket not processed yet."
 
                 # Assign campaign names to tags if the ticket is a reply to some mailing
                 unless result[:subject].scan(/^(odp|sv|re): (.+)/i).empty?
@@ -44,8 +47,21 @@ class AortaCheckTicketWorker
                 end
 
             else
-                puts "#{ticket_id}: entry processed, skipping."
-                return
+
+                if result[:tags].include? "aorta_reprocess"
+                    puts "#{@ticket_id}: Ticket marked for reprocessing."
+                    unless result[:subject].scan(/^(odp|sv|re): (.+)/i).empty?
+                        puts "It's a reply, checking campaign names."
+                        result[:subject].gsub!(/^(odp|sv|re): /i, '')
+                        new_tags = new_tags + identity_get_mailing_info(result[:subject])  
+                    else
+                        puts "It's not a reply. Proceeding to watchdog operation."
+                    end
+                else
+                    puts "#{@ticket_id}: entry processed, skipping."
+                    return
+                end
+
             end
 
         else
@@ -106,50 +122,52 @@ class AortaCheckTicketWorker
         if member
             is_member_subscribed = !MemberSubscription.where(member_id: member.id).first.unsubscribed_at
             member_description = "Donated: #{member.donations_count || 0} times; highest: #{member.highest_donation || 0}, subscribed: #{is_member_subscribed}."
-            fd_update_requester_info(auth, ticket_id, result[:requester_id], member_description)
+            fd_update_requester_info(auth, result[:requester_id], member_description)
         else
             member_description = "No person by that email in Identity."
             # Save 1 API call by not sending that to FreshDesk
-            fd_update_requester_info(auth, ticket_id, result[:requester_id], member_description)
+            fd_update_requester_info(auth, result[:requester_id], member_description)
         end
             
         # Update the ticket's tags at the end
         # If the source is not an e-mail, you get errors upon trying to update the ticket. 
         # Thanks FreshDesk!
         new_tags << "aorta_processed"
-        fd_update_ticket_tags(auth, ticket_id, new_tags) unless result[:source].to_i != 1
+        fd_update_ticket_tags(auth, new_tags) unless result[:source].to_i != 1
               
     end
 
     private
 
-    def fd_get_ticket(auth, ticket_id)
+    def fd_get_ticket(auth)
         # Cost: 2 FreshDesk API credits
-        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id}?include=requester", basic_auth: auth)
-        fd_rate_limit_check(ticket_id, response)
+        response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{@ticket_id}?include=requester", basic_auth: auth)
+        fd_rate_limit_check(response)
+        p "This shouldn't be executed." if response.response["status"] != 200
         result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"], source: response["source"]}
         return result
     end
 
-    def fd_rate_limit_check(ticket_id, response)
+    def fd_rate_limit_check(response)
         # Throw an exception upon hitting the rate limit
-        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
+        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429 Too Many Requests"
           # reschedule it for later
-          AortaCheckTicketWorker.perform_in(response.response["retry-after"].to_i + 10, ticket_id)
+          puts "Rate limit hit. Will retry after #{(response.response["retry-after"].to_i + 10) / 60} minutes."
+          AortaCheckTicketWorker.perform_in(response.response["retry-after"].to_i + 10, @ticket_id)
           return
         elsif response.response["status"] != "200 OK"
             raise AortaCheckTicketWorker::FreshDeskError.new("Something went wrong! Status: #{response.response["status"]}")
         end
     end
 
-    def fd_update_requester_info(auth, ticket_id, requester_id, new_requester_description)
+    def fd_update_requester_info(auth, requester_id, new_requester_description)
         # Cost: 1 FreshDesk API credit
         response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/contacts/#{requester_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: {description: new_requester_description}.to_json)
-        fd_rate_limit_check(ticket_id, response)
+        fd_rate_limit_check(response)
         return response.response["status"]
     end
 
-    def fd_update_ticket_tags(auth, ticket_id, new_tags)
+    def fd_update_ticket_tags(auth, new_tags)
 
         # If an opt-out operation was carried out, change the type accordingly
         unless new_tags.include? "wypisano"
@@ -159,8 +177,8 @@ class AortaCheckTicketWorker
         end
 
         # Cost: 1 FreshDesk API credit
-        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{ticket_id.to_i}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body)
-        fd_rate_limit_check(ticket_id, response)
+        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{@ticket_id}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body)
+        fd_rate_limit_check(response)
     end
 
     def identity_get_mailing_info(subject)
