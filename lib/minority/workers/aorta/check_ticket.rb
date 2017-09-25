@@ -18,6 +18,9 @@ class AortaCheckTicketWorker
         # Thanks FreshDesk!
         return if result[:subject].empty?
 
+        # Do not process if the ticket e-mail wasn't sent to the "contact" e-mail address
+        return if result[:to_emails].include? ENV["CONTACT_EMAIL"]
+
         # First, check who we're dealing with, even before opt-out/forget operations
         member = Member.find_by(email: result[:email])
 
@@ -144,13 +147,13 @@ class AortaCheckTicketWorker
         response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{@ticket_id}?include=requester", basic_auth: auth)
         fd_rate_limit_check(response)
         p "This shouldn't be executed." if response.response["status"] != 200
-        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"], source: response["source"]}
+        result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"], source: response["source"], to_emails: response["to_emails"]}
         return result
     end
 
     def fd_rate_limit_check(response)
         # Throw an exception upon hitting the rate limit
-        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429 Too Many Requests"
+        if response.response["x-ratelimit-remaining"].to_i < 2 or response.response["status"] == "429"
           # reschedule it for later
           puts "Rate limit hit. Will retry after #{(response.response["retry-after"].to_i + 10) / 60} minutes."
           AortaCheckTicketWorker.perform_in(response.response["retry-after"].to_i + 10, @ticket_id)
