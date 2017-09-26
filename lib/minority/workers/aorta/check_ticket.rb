@@ -22,7 +22,7 @@ class AortaCheckTicketWorker
         return if result[:source].to_i != 1
 
         # Do not process if the ticket e-mail wasn't sent to the "contact" e-mail address
-        return if result[:to_emails].include? ENV["CONTACT_EMAIL"]
+        return unless result[:to_emails].include? ENV["CONTACT_EMAIL"]
 
         # First, check who we're dealing with, even before opt-out/forget operations
         member = Member.find_by(email: result[:email])
