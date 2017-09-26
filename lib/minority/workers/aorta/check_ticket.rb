@@ -18,6 +18,9 @@ class AortaCheckTicketWorker
         # Thanks FreshDesk!
         return if result[:subject].empty?
 
+        # Do not process non-email tickets
+        return if result[:source].to_i != 1
+
         # Do not process if the ticket e-mail wasn't sent to the "contact" e-mail address
         return if result[:to_emails].include? ENV["CONTACT_EMAIL"]
 
@@ -146,7 +149,6 @@ class AortaCheckTicketWorker
         # Cost: 2 FreshDesk API credits
         response = HTTParty.get("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{@ticket_id}?include=requester", basic_auth: auth)
         fd_rate_limit_check(response)
-        p "This shouldn't be executed." if response.response["status"] != 200
         result = {email: response["requester"]["email"], requester_id: response["requester_id"], subject: response["subject"], type: response["type"], tags: response["tags"], source: response["source"], to_emails: response["to_emails"]}
         return result
     end
