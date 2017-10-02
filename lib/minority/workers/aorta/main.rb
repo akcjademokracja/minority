@@ -4,6 +4,7 @@ class AortaMainWorker
     include Sidekiq::Worker
 
     def perform
+      return if ENV['AMQP_URL'].blank?
 
         # Estabilish a connection first
         begin
