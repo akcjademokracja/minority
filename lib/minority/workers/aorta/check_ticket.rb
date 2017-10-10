@@ -89,13 +89,13 @@ class AortaCheckTicketWorker
             when "Mało kasy"
                 print "Adding member to non-donation-asking group... "
                 low_money_list = List.find_by(name: "mało kasy")
-                low_money_list << member
+                low_money_list.members << member
                 new_tags << "dodano_do_malo_kasy"
                 puts "done"
             when "Mniej maili"
                 print "Adding member to lower mailing count list..."
                 low_mailing_list = List.find_by(name: "mniej maili")
-                low_mailing_list << member
+                low_mailing_list.members << member
                 new_tags << "dodano_do_mniej_maili"
                 puts "done"
             when "Wypisany"
