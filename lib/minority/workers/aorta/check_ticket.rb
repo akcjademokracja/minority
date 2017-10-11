@@ -73,7 +73,7 @@ class AortaCheckTicketWorker
             return
           end
         end
-        new_tags += self.campaign_tags(result)
+        new_tags += campaign_tags(result)
 
         email_subscription = Subscription.find_by name: 'email'
 
