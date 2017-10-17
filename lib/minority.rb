@@ -5,6 +5,7 @@ require "minority/services"
 require "minority/workers"
 require "minority/controllers"
 require "minority/searches"
+require "minority/views"
 
 
 module Minority
