@@ -5,8 +5,9 @@ Tempora38::App.controllers :'bank_acct' do
     end
 
     get '/import' do
-        #erb :'bank_acct/import'
-        nil.to_json
+      template = open(File.expand_path("../../../views/bank_acct/import.erb", __FILE__))
+      view = ERB.new(template.read())
+      view.result()
     end
 
     post '/import' do
