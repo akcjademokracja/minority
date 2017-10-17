@@ -11,9 +11,12 @@ Tempora38::App.controllers :'bank_acct' do
 
     post '/import' do
         csv_placeholder = nil
+        csv_result = nil
+
+        csv_result << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "topic", "status"]
 
         CSV.new(csv_placeholder, headers: true).each do |donation|
-            # email,bank_acct_no,name,address,date,amount,payment_no,topic
+            # email,bank_acct_no,name,address,date,amount,transaction_id,topic
             # locate the donator by their email in Identity
 
             donator = nil
@@ -48,25 +51,36 @@ Tempora38::App.controllers :'bank_acct' do
             end
 
             # by that point, the donator should be known
-            unless donator.nil?
+            unless donator.nil? or donator.empty?
                 # create donations
+                donation = Donation.new({
+                        amount: donation["amount"].to_f,
+                        member: donator
+                        external_id: donation["transaction_id"].to_s
+                        external_processor: "konto"
+                        })
+
+                unless donator.is_a? Hash
+                    csv_result << donation.to_csv.rstrip + ",success\n" 
+                else
+                    # donator is a hash, which means they've been suspected
+                    csv_result << donation.to_csv.rstrip + ",the donator has been guessed\n" 
+                end
             else
                 puts "Donator not found. How is that possible?"
+                csv_result << donation.to_csv.rstrip + ",donator not found\n" 
             end
-
         end
-
     end
 
     private
 
     def locate_by_bank_acct_no(bank_acct_no)
+        # a single person can have several accounts in Identity; we'll assign the donation to their most recent one
         return Member.where("external_ids ->> '#{bank_acct_no}' = '9999'").order(updated_at: :desc).first
     end
 
     def locate_by_name(name)
-        is_suspected = false
-
         # we have to resort to finding the donator by their names
         fname, _, lname = name.split(" ")
 
@@ -82,10 +96,11 @@ Tempora38::App.controllers :'bank_acct' do
             # the donator may be the last person to perform a member action
             donator = people.joins(:member_actions).order(updated_at: :desc).first
             # update suspected flag
-            is_suspected = true
-        end
-
-        return {donator: donator, is_suspected: is_suspected}
-    end
+            return {donator: donator, is_suspected: true}
+        else
+            # if there's just one person by that name...
+            return people.first
+        end   
+    end    
     
 end
