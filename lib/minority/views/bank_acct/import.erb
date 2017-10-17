@@ -1,1 +1,15 @@
 Formularz importu tutaj.
+
+<html>
+    <head>
+        <title>Daj CSV</title>
+    </head>
+    <body>
+        <h1>Daj CSV</h1>
+        
+        <form action="/bank_acct/import" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file">
+            <input type="submit" value="send csv">
+        </form>
+    </body>
+</html>
