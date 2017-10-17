@@ -56,8 +56,8 @@ Tempora38::App.controllers :'bank_acct' do
                 # create donations
                 donation = Donation.new({
                         amount: donation["amount"].to_f,
-                        member: donator
-                        external_id: donation["transaction_id"].to_s
+                        member: donator, 
+                        external_id: donation["transaction_id"].to_s,
                         external_processor: "konto"
                         })
 
