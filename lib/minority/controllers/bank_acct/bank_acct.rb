@@ -22,28 +22,18 @@ Tempora38::App.controllers :'bank_acct' do
 
         CSV.foreach(input_csv, headers: true).each do |donation|
             # email,bank_acct_no,name,address,date,amount,transaction_id,topic
-            # locate the donator by their email in Identity
+            
+            donator = nil
 
+            # locate the donator by their email in Identity if their email is given
             if donation["email"]
-                if Member.exists?(email: donation["email"])
-                    donator = identity.locate_by_email(donation, donation["email"])
-                else
-                    # locate a person by their account number
-                    donator = identity.locate_by_bank_acct_no(donation, donation["bank_acct_no"])
-
-                    # still no dice? attempt to locate by name
-                    unless donator
-                        identity.locate_by_name(donation, donation["name"], donation["address"]) unless donation["name"].nil?
-                    end
-                end
-            else
-                # locate a person by their account number
-                donator = identity.locate_by_bank_acct_no(donation, donation["bank_acct_no"])
-
-                unless donator
-                    donator = identity.locate_by_name(donation, donation["name"], donation["address"])
-                end
+                donator = identity.locate_by_email(donation, donation["email"])
             end
+
+            # locate a person by their account number
+            donator = identity.locate_by_bank_acct_no(donation, donation["bank_acct_no"]) unless donator
+            # still no dice? attempt to locate by name
+            donator = identity.locate_by_name(donation, donation["name"], donation["address"]) unless donator or donation["name"].nil?
 
             # by that point, the donator should be known
             p donator
@@ -58,9 +48,9 @@ Tempora38::App.controllers :'bank_acct' do
                         })
 
                 # don't create duplicate donations
-                if Donation.find_by(external_id: new_donation.external_id)
+                if Donation.find_by(external_id: new_donation.external_id) or Donation.find_by(amount: donation["amount"].to_f, member: donator, created_at: DateTime.parse(donation["date"]))
                     Padrino.logger.info("Ignoring duplicate donation #{new_donation.external_id}")
-                    identity.csv_result << donation.to_h.values + ["ignoring duplicate donation #{new_donation.external_id}"]
+                    identity.csv_result << Array.new(donation.to_h.values.count) + ["ignoring duplicate donation #{new_donation.external_id}"]
                 else
                     new_donation.save!
                 end
@@ -89,7 +79,7 @@ class IdentityLookup
 
     def initialize
         @csv_result = []
-    end
+    end 
 
     def locate_by_bank_acct_no(donation, bank_acct_no)
         # a single person can have several accounts in Identity; we'll assign the donation to their most recent one
@@ -104,59 +94,70 @@ class IdentityLookup
         puts "Locating member #{donation["name"]} by name"
         return if name.nil?
         name = name.split(" ")
-        fname = name[0]
-        lname = name[-1]
+        fname = name[0].strip.downcase.capitalize
+        lname = name[-1].strip.downcase.capitalize
 
-        # there can be a couple of people by the same name
-        people = Member.where(first_name: fname.strip.downcase.capitalize, last_name: fname.strip.downcase.capitalize)
-        puts "Found #{people.count} people by that name."
+        unless Member.where(first_name: fname, last_name: lname).count == 0
+            people = Member.where(first_name: fname, last_name: lname)
+            puts "Found #{people.count} people by that name."
+        else
+            # the name can be in reverse order, so if there are no people by that name we'll switch the order
+            puts "No people found for name #{donation["name"]}. Switching name order."
+            people = Member.where(first_name: lname, last_name: fname)
+            # give up if there still are no records
+            if people.count == 0
+                puts "No people found for name #{donation["name"]}."
+                return nil
+            end
+        end
 
-        if people.count != 0
-            if people.count == 1
-                # if there's just one person by that name...
-                puts "Just one person by that name."
-                @csv_result << donation.to_h.values + ["success (exact name)"] 
-                return people.first
-            else
-                # differentiate by postcodes
-                # extract postcode
-                postcode = address.scan(/[0-9]{2}-[0-9]{3}/).first
-                puts "The postcode is #{postcode}."
+        # there can be a couple of people by the same name, differentiate by postcodes
+        if people.count > 1
+            postcode = address.scan(/[0-9]{2}-[0-9]{3}/).first
+            puts "The postcode is #{postcode}."
 
-                if postcode
-                    more_people = people.joins(:addresses).where(addresses: {postcode: postcode})
-
-                    if more_people.count != 0
-                        # the donator may be the last person to perform a member action
-                        donator = more_people.joins(:member_actions).order(updated_at: :desc).first
-                        puts "Guessing that the member is #{donator.first_name} #{donator.last_name}, #{donator.email} out of #{people.count} people"
-                        @csv_result << donation.to_h.values + ["guess (name and address)"]
-                        return donator
-                    else
-                        puts "Can't guess the donator."
-                        @csv_result << donation.to_h.values + ["can't guess the donator"]
-                    end
+            if postcode
+                people = people.joins(:addresses).where(addresses: {postcode: postcode})
+                unless people.count == 0
+                    # the donator may be the last person to perform a member action
+                    donator = people.joins(:member_actions).order(updated_at: :desc).first
+                    puts "Guessing that the member is #{donator.first_name} #{donator.last_name}, #{donator.email} out of #{people.count} people"
+                    @csv_result << donation.to_h.values + ["success (guessing by name and postcode)"]
+                    return donator
                 else
-                    puts "No postcode to work with."
+                    puts "Can't guess the donator."
+                    return nil
                 end
+            else
+                puts "No postcode to work with, can't differentiate."
+                return nil
             end
         else
-            puts "No people found for name #{donation["name"]}"
+            puts "Just one person by that name."
+            @csv_result << donation.to_h.values + ["success (exact match)"]
+            return people.first
         end
-           
-    end 
+
+    end
 
     def locate_by_email(donation, email)
-        puts "Located #{donation["name"]} by email: #{email}"
-        donator = Member.find_by(email: email)
 
-        # if they don't have an external ID with a bank account number, add that
-        unless donator.external_ids.has_key? "bank_acct_no"
-            donator.external_ids["bank_acct_no"] = donation["bank_acct_no"].to_s
-            donator.save!
+        if Member.exists?(email: email)
+            puts "Located #{donation["name"]} by email: #{email}"
+            donator = Member.find_by(email: email)
+
+            # if they don't have an external ID with a bank account number, add that
+            unless donator.external_ids.has_key? "bank_acct_no"
+                donator.external_ids["bank_acct_no"] = donation["bank_acct_no"].to_s
+                donator.save!
+            end
+
+            @csv_result << donation.to_h.values + ["success (email)"]
+            return donator
+        else
+            puts "Can't locate #{donation["name"]} by email."
+            return nil
         end
-
-        @csv_result << donation.to_h.values + ["success (email)"]
-        return donator
     end
+
 end
