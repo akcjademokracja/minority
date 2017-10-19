@@ -45,9 +45,9 @@ class AortaCheckTicketWorker
           Member::GDPR.optout(member, "Aorta opt-out") if member
           new_tags << "wypisano"
           puts "unsubscribed"
-        when "Mało kasy"
+        when "Mało pieniędzy"
           print "Adding member to non-donation-asking group... "
-          low_money_list = List.find_by(name: "mało kasy")
+          low_money_list = List.find_or_create_by(name: "mało pieniędzy")
           unless low_money_list.members.include? member
             low_money_list.members << member
           end
@@ -55,7 +55,7 @@ class AortaCheckTicketWorker
           puts "done"
         when "Mniej maili"
           print "Adding member to lower mailing count list..."
-          low_mailing_list = List.find_by(name: "mniej maili")
+          low_mailing_list = List.find_or_create_by(name: "mniej maili")
           unless low_mailing_list.members.include? member
             low_mailing_list.members << member
           end
