@@ -1,3 +1,5 @@
+require 'unicode'
+
 Tempora38::App.controllers :'bank_acct' do
 
     before do
@@ -26,9 +28,7 @@ Tempora38::App.controllers :'bank_acct' do
             donator = nil
 
             # locate the donator by their email in Identity if their email is given
-            if donation["email"]
-                donator = identity.locate_by_email(donation, donation["email"])
-            end
+            donator = identity.locate_by_email(donation, donation["email"]) if donation["email"]
 
             # locate a person by their account number
             donator = identity.locate_by_bank_acct_no(donation, donation["bank_acct_no"]) unless donator
@@ -52,6 +52,7 @@ Tempora38::App.controllers :'bank_acct' do
                     Padrino.logger.info("Ignoring duplicate donation #{new_donation.external_id}")
                     identity.csv_result << Array.new(donation.to_h.values.count) + ["ignoring duplicate donation #{new_donation.external_id}"]
                 else
+                    identity.csv_result << Array.new(donation.to_h.values.count) + ["creating new donation #{new_donation.external_id}"]
                     new_donation.save!
                 end
             else
@@ -91,23 +92,25 @@ class IdentityLookup
 
     def locate_by_name(donation, name, address)
         # we have to resort to finding the donator by their names
-        puts "Locating member #{donation["name"]} by name"
+        puts "Locating member #{fname} #{lname} by name"
         return if name.nil?
         name = name.split(" ")
-        fname = name[0].strip.downcase.capitalize
-        lname = name[-1].strip.downcase.capitalize
+        fname = unicode_normalize(name[0])
+        lname = unicode_normalize(name[-1])
 
         unless Member.where(first_name: fname, last_name: lname).count == 0
             people = Member.where(first_name: fname, last_name: lname)
             puts "Found #{people.count} people by that name."
         else
             # the name can be in reverse order, so if there are no people by that name we'll switch the order
-            puts "No people found for name #{donation["name"]}. Switching name order."
+            puts "No people found for name #{fname} #{lname}. Switching name order."
             people = Member.where(first_name: lname, last_name: fname)
             # give up if there still are no records
             if people.count == 0
-                puts "No people found for name #{donation["name"]}."
+                puts "No people found for name #{lname} #{fname}."
                 return nil
+            else
+                puts "#{people.count} found for name #{lname} #{fname}."
             end
         end
 
@@ -158,6 +161,14 @@ class IdentityLookup
             puts "Can't locate #{donation["name"]} by email."
             return nil
         end
+    end
+
+    private
+
+    def unicode_normalize(name)
+        name = name.strip
+        name = Unicode::downcase(name)
+        name = Unicode::capitalize(name)
     end
 
 end
