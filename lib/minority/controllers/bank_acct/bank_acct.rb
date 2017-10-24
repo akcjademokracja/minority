@@ -92,7 +92,7 @@ class IdentityLookup
 
     def locate_by_name(donation, name, address)
         # we have to resort to finding the donator by their names
-        puts "Locating member #{fname} #{lname} by name"
+        puts "Locating member #{donation["name"]} by name"
         return if name.nil?
         name = name.split(" ")
         fname = unicode_normalize(name[0])
