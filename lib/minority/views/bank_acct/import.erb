@@ -4,10 +4,16 @@
     </head>
     <body>
         <h1>Ręczne wpłaty na konto -> Identity</h1>
-        
+        <p>Wybierz plik CSV i kliknij przycisk "Send CSV", po czym poczekaj (dłuższą) chwilę na plik wynikowy. Plik CSV musi mieć określony format; w razie wątpliwości pobierz przykładowy plik używając przycisku "Generate template".</p>
+        <hr></hr>
         <form action="/bank_acct/import" method="POST" enctype="multipart/form-data">
             <input type="file" name="file">
             <input type="submit" value="Send CSV">
         </form>
+        <hr></hr>
+        <form action="/bank_acct/generate_template" method="GET">
+            <input type="submit" value="Generate template">
+        </form>
+        <hr></hr>
     </body>
 </html>

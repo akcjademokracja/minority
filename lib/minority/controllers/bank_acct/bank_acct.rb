@@ -71,6 +71,16 @@ Tempora38::App.controllers :'bank_acct' do
             end
         end
     end
+
+    get 'generate_template' do 
+        content_type 'application/csv'
+        attachment 'donations_template.csv'
+
+        CSV.generate do |csv|
+            csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "topic"]
+            csv << ["foo@bar.baz", "1337", "MIŚ DUSZATEK", "UL. SMOGOWA 13/37 41-999 KRAKÓW", "2017-09-25", "0.05", "A1234567", "statutowe"]
+        end
+    end
 end
 
 
