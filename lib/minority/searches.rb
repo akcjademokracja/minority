@@ -2,6 +2,11 @@ module Minority
   module Searches
     extend ActiveSupport::Concern
 
+    CHANGE_LABEL = {
+      'has-taken-issue' => 'Segments include',
+      'has-taken-issue-category' => 'Pillars include'
+    }
+
     INSERT_BEFORE = {
       'three-month-active' =>
       {
@@ -48,11 +53,16 @@ module Minority
 
       def self.filters
         f = filters_orig
-        INSERT_BEFORE.each do |before_id, search_def| 
-          idx = f.find_index { |search| search[:id] == before_id }
-          unless idx.nil?
-            f.insert idx, search_def
+        idx = 0
+        while idx < f.length
+          criterion = f[idx]
+          if new_criterion = INSERT_BEFORE[criterion[:id]]
+            f.insert idx, new_criterion
+            idx += 1 # skip inserted one
+          elsif new_label = CHANGE_LABEL[criterion[:id]]
+            criterion[:label] = new_label
           end
+          idx += 1
         end
         f
       end
