@@ -1,5 +1,6 @@
 # coding: utf-8
 require 'httparty'
+require 'babosa'
 
 class AortaCheckTicketWorker
     include Sidekiq::Worker
@@ -68,7 +69,7 @@ class AortaCheckTicketWorker
           return
         else
           if result[:tags].include? "aorta_processed"
-            puts "#{@tickete_id}: entry processed and not marked for reprocessing"
+            puts "#{@ticket_id}: entry processed and not marked for reprocessing"
             # EXIT
             return
           end
@@ -191,7 +192,7 @@ class AortaCheckTicketWorker
 
         # FINAL OPERATION
 
-        return (mailings_by_tags_campaigns + mailings_by_subject_campaigns).uniq
+        return (mailings_by_tags_campaigns + mailings_by_subject_campaigns).map{|tag| tag.to_slug.transliterate.to_s.downcase}.uniq
 
     end
 
