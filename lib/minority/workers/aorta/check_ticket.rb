@@ -51,6 +51,8 @@ class AortaCheckTicketWorker
           low_money_list = List.find_or_create_by(name: "mało pieniędzy")
           unless low_money_list.members.include? member
             low_money_list.members << member
+            low_money_list.member_count = low_money_list.members.count
+            low_money_list.save!
           end
           new_tags << "dodano_do_malo_kasy"
           puts "done"
@@ -59,6 +61,8 @@ class AortaCheckTicketWorker
           low_mailing_list = List.find_or_create_by(name: "mniej maili")
           unless low_mailing_list.members.include? member
             low_mailing_list.members << member
+            low_mailing_list.member_count = low_mailing_list.members.count
+            low_mailing_list.save!
           end
           new_tags << "dodano_do_mniej_maili"
           puts "done"
