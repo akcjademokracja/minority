@@ -14,10 +14,9 @@ Tempora38::App.controllers :'api/gdpr' do
         halt 404
       end
 
-      success = Member::GDPR.optout(member, @request_payload[:reason] || "GDPR forget request")
-      halt 400 unless success
+      deleted = Member::GDPR.forget(member)
 
-      {}.to_json
+      {data: { deleted: deleted }}.to_json
     else
       halt 400
     end
