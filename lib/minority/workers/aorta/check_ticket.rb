@@ -178,7 +178,7 @@ class AortaCheckTicketWorker
         unless mailing_ids.empty?
             # This is an array of Mailing objects or an array containing a single Mailing object
             mailings_by_tags = Mailing.where(id: mailing_ids)
-            mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
+            mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: "")}
         else
             mailings_by_tags_campaigns = []
         end
