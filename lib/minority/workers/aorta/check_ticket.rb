@@ -92,7 +92,7 @@ class AortaCheckTicketWorker
           member_description = "Donated: #{member.donations_count || 0} times; 
           highest: #{member.highest_donation || 0}, 
           subscribed: #{is_member_subscribed}. 
-          First action: #{member.actions.first.name.to_slug.transliterate.to_s}"
+          First action: #{member.actions.any? ? member.actions.first.name.to_slug.transliterate.to_s : "none"}"
           fd_update_requester_info(auth, result[:requester_id], member_description)
         else
           member_description = "No person by that email in Identity."
@@ -192,7 +192,7 @@ class AortaCheckTicketWorker
         mailings_by_subject = Mailing.where(subject: subject)
 
         unless mailings_by_subject.empty?
-            mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
+            mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: "")}
         else
             mailings_by_subject_campaigns = []
         end
