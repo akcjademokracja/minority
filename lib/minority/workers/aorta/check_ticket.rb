@@ -89,7 +89,10 @@ class AortaCheckTicketWorker
         if member
           member_subscription = MemberSubscription.where(member_id: member.id, subscription_id: email_subscription.id).first
           is_member_subscribed = !member_subscription.nil? and member_subscription.unsubscribed_at.nil?
-          member_description = "Donated: #{member.donations_count || 0} times; highest: #{member.highest_donation || 0}, subscribed: #{is_member_subscribed}."
+          member_description = "Donated: #{member.donations_count || 0} times; 
+          highest: #{member.highest_donation || 0}, 
+          subscribed: #{is_member_subscribed}. 
+          First action: #{member.actions.first.name.to_slug.transliterate.to_s}"
           fd_update_requester_info(auth, result[:requester_id], member_description)
         else
           member_description = "No person by that email in Identity."
