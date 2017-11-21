@@ -1,0 +1,15 @@
+<html>
+    <head>
+        <title>AortaCheckTicketWorker Manual Proc</title>
+    </head>
+    <body>
+        <h1>AortaCheckTicketWorker Manual Proc</h1>
+        <p>Wpisz tickety do przeprocesowania oddzielone przecinkiem, np. 12345,12346,12347(...)</p>
+        <hr></hr>
+        <form action="/aorta/manual_proc" method="POST">
+            <input type="text" name="ticket_list">
+            <input type="submit" value="Process tickets">
+        </form>
+        <hr></hr>
+    </body>
+</html>
