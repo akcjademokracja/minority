@@ -12,10 +12,14 @@ Tempora38::App.controllers :'aorta' do
 
     post '/manual_proc' do 
         tickets = params[:ticket_list].split(",")
+        halt 400 if tickets.empty?
 
         tickets.each do |t|
             AortaCheckTicketWorker.new.perform(t.to_i)
         end
+
+        status 200
+        {status: "accepted", tickets: tickets}.to_json
     end
 
 
