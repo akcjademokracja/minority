@@ -1,3 +1,5 @@
+require 'resolv-replace'
+
 Tempora38::App.controllers :'aorta' do
 
     before do
@@ -15,7 +17,8 @@ Tempora38::App.controllers :'aorta' do
         halt 400 if tickets.empty?
 
         tickets.each do |t|
-            AortaCheckTicketWorker.new.perform(t.to_i)
+            puts "Ticket: #{t.to_i}"
+            AortaCheckTicketWorker.perform_async(t.to_i)
         end
 
         status 200
