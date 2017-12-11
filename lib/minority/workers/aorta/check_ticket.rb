@@ -89,7 +89,13 @@ class AortaCheckTicketWorker
         if member
           member_subscription = MemberSubscription.where(member_id: member.id, subscription_id: email_subscription.id).first
           is_member_subscribed = !member_subscription.nil? and member_subscription.unsubscribed_at.nil?
-          member_description = "Donated: #{member.donations_count || 0} times; highest: #{member.highest_donation || 0}, subscribed: #{is_member_subscribed}."
+          first_action = member.actions.any? ? member.actions.first.name.to_slug.transliterate.to_s : "none"
+          top_issue = member.issues.any? ? member.issues.group(:name).count.sort_by{|k, v| v}.reverse.to_h.first.join(", ") : "none"
+          member_description = "Donated: #{member.donations_count || 0} times; 
+          highest: #{member.highest_donation || 0}, 
+          subscribed: #{is_member_subscribed}. 
+          First action: #{first_action},
+          top issue: #{top_issue}"
           fd_update_requester_info(auth, result[:requester_id], member_description)
         else
           member_description = "No person by that email in Identity."
@@ -178,7 +184,7 @@ class AortaCheckTicketWorker
         unless mailing_ids.empty?
             # This is an array of Mailing objects or an array containing a single Mailing object
             mailings_by_tags = Mailing.where(id: mailing_ids)
-            mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
+            mailings_by_tags_campaigns = mailings_by_tags.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: "")}
         else
             mailings_by_tags_campaigns = []
         end
@@ -189,7 +195,7 @@ class AortaCheckTicketWorker
         mailings_by_subject = Mailing.where(subject: subject)
 
         unless mailings_by_subject.empty?
-            mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: '...')}
+            mailings_by_subject_campaigns = mailings_by_subject.map {|mailing| mailing.name.split("-")[0].truncate(20, omission: "")}
         else
             mailings_by_subject_campaigns = []
         end
