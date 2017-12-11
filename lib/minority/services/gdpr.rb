@@ -7,6 +7,10 @@ class Member
     end
 
     def self.forget(member)
+      if member.admin
+        return false
+      end
+
       member.unsubscribe_permanently
 
       last_year_donations = member.donations.where("created_at > ?", Date.today - 1.year)
