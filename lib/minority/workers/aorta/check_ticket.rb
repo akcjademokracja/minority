@@ -42,10 +42,15 @@ class AortaCheckTicketWorker
           new_tags << "zapomniano"
           puts "forgotten"
         when "Do wypisania"
-          print "Unsubscribing member... "
-          Member::GDPR.optout(member, "Aorta opt-out") if member
-          new_tags << "wypisano"
-          puts "unsubscribed"
+          if member
+            print "Unsubscribing member... "
+            Member::GDPR.optout(member, "Aorta opt-out")
+            puts "unsubscribed"
+            new_tags << "wypisano"
+          else
+            puts "CANNOT UNSUBSCRIBE THE MEMBER! MEMBER NOT FOUND IN THE DATABASE."
+            new_tags << "nie_wypisano"
+          end
         when "Mało pieniędzy"
           print "Adding member to non-donation-asking group... "
           low_money_list = List.find_or_create_by(name: "mało pieniędzy")
@@ -66,6 +71,13 @@ class AortaCheckTicketWorker
           end
           new_tags << "dodano_do_mniej_maili"
           puts "done"
+        when "Zamiana imienia i nazwiska"
+          puts "Fix first name & last name order..."
+          puts "Current data: #{member.first_name} #{member.last_name}"
+          puts "Changing to: #{member.last_name} #{member.first_name}"
+          new_lname = member.first_name
+          new_fname = member.last_name
+          member.update!(first_name: new_fname, last_name: new_lname)
         when "Wypisany"
           # Aorta probably got this ticket, because FreshDesk executed some Supervisor rule, which updated the ticket again
           puts "Member already unsubscribed."
