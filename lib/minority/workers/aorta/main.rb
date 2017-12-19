@@ -28,10 +28,11 @@ class AortaMainWorker
                 # and since this worker is run every 5 minutes, you'd get another thread every 5 minutes.
                 # The subscribers would basically exist and be idle somewhere, waiting for messages.
                 q.subscribe(block: true, manual_ack: true) do |delivery_info, properties, payload|
-                message_details = JSON.parse(payload)
-                # Just acknowledge the message
-                ch.ack(delivery_info.delivery_tag)
-                AortaCheckTicketWorker.perform_async(message_details["ticket_id"])
+                    message_details = JSON.parse(payload)
+                    # Just acknowledge the message
+                    ch.ack(delivery_info.delivery_tag)
+                    AortaCheckTicketWorker.perform_async(message_details["ticket_id"])
+                end
             end
 
         rescue Bunny::PreconditionFailed => e
