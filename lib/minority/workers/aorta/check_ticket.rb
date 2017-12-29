@@ -53,31 +53,54 @@ class AortaCheckTicketWorker
           end
         when "Mało pieniędzy"
           print "Adding member to non-donation-asking group... "
+          if result[:tags].include? "dodano_do_malo_pieniedzy"
+            puts "They've already been added to low money list."
+            return
+          end
           low_money_list = List.find_or_create_by(name: "mało pieniędzy")
           unless low_money_list.members.include? member
-            low_money_list.members << member
-            low_money_list.member_count = low_money_list.members.count
-            low_money_list.save!
+            low_money_list.add_new_member(member)
           end
-          new_tags << "dodano_do_malo_kasy"
+          new_tags << "dodano_do_malo_pieniedzy"
           puts "done"
         when "Mniej maili"
           print "Adding member to lower mailing count list..."
+          if result[:tags].include? "dodano_do_mniej_maili"
+            puts "They've already been added to low mailing list."
+            return
+          end 
           low_mailing_list = List.find_or_create_by(name: "mniej maili")
           unless low_mailing_list.members.include? member
-            low_mailing_list.members << member
-            low_mailing_list.member_count = low_mailing_list.members.count
-            low_mailing_list.save!
+            low_mailing_list.add_new_member(member)
           end
           new_tags << "dodano_do_mniej_maili"
           puts "done"
+        when "Dodanie do listy regularnie wpłacających"
+          # I wonder if that's necessary?
+          puts "Adding to regular donator list..."
+          if result[:tags].include? "dodano_do_regularnie_wpl"
+            puts "Already marked as regular donators... ignoring"
+            return
+          end
+          regular_donor_list = List.find_or_create_by(name: "Wpłacają Regularnie")
+          unless regular_donor_list.members.include? member
+            regular_donor_list.add_new_member(member)
+          end
+          new_tags << "dodano_do_regularnie_wpl"
         when "Zamiana imienia i nazwiska"
           puts "Fix first name & last name order..."
+          if result[:tags].include? "naprawiono_imie_nazwisko"
+            puts "They already had their name order fixed... ignoring."
+            return
+          end
           puts "Current data: #{member.first_name} #{member.last_name}"
           puts "Changing to: #{member.last_name} #{member.first_name}"
           new_lname = member.first_name
           new_fname = member.last_name
           member.update!(first_name: new_fname, last_name: new_lname)
+          new_tags << "naprawiono_imie_nazwisko"
+        end
+          
         when "Wypisany"
           # Aorta probably got this ticket, because FreshDesk executed some Supervisor rule, which updated the ticket again
           puts "Member already unsubscribed."
