@@ -98,9 +98,7 @@ class AortaCheckTicketWorker
           new_lname = member.first_name
           new_fname = member.last_name
           member.update!(first_name: new_fname, last_name: new_lname)
-          new_tags << "naprawiono_imie_nazwisko"
-        end
-          
+          new_tags << "naprawiono_imie_nazwisko" 
         when "Wypisany"
           # Aorta probably got this ticket, because FreshDesk executed some Supervisor rule, which updated the ticket again
           puts "Member already unsubscribed."
