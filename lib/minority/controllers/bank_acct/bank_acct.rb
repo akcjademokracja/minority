@@ -14,8 +14,6 @@ Tempora38::App.controllers :'bank_acct' do
 
     post '/import' do
 
-        identity = IdentityLookup.new
-
         if params[:file] && params[:file][:type] == "text/csv" && params[:email]
             input_csv = params[:file][:tempfile]
             email = params[:email]
@@ -25,9 +23,9 @@ Tempora38::App.controllers :'bank_acct' do
 
         password = SecureRandom.hex(16)
 
-        BankPaymentImportWorker.perform(input_csv, password, email)
+        BankPaymentImportWorker.perform_async(input_csv, password, email)
 
-        {message: "W przeciągu kilku minut dostaniesz emaila z wynikiem na podany adres. Hasło do otwarcia pliku to: #{password}"}
+        {message: "W przeciągu kilku minut dostaniesz emaila z wynikiem na podany adres. Hasło do otwarcia pliku to: #{password}"}.to_json
     end
 
     get 'generate_template' do 

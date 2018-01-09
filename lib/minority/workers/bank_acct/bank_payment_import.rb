@@ -1,4 +1,4 @@
-require './identity_lookup.rb'
+require_relative './identity_lookup.rb'
 
 class BankPaymentImportWorker
     include Sidekiq::Worker
