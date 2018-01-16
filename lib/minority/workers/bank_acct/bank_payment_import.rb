@@ -53,7 +53,8 @@ class BankPaymentImportWorker
             end
         end
 
-        zip_filename = Time.now.utc.strftime("%Y-%m-%d %H_%M_%S")
+        timestamp = Time.now.utc.strftime("%Y-%m-%d %H_%M_%S")
+        zip_filename = "bank_acct-#{timestamp}.zip"
         
 
         Zip::Archive.open(zip_filename, Zip::CREATE) do |ar|
