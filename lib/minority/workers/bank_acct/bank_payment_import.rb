@@ -6,7 +6,7 @@ class BankPaymentImportWorker
     def perform(input_csv, password, email)
         identity = IdentityLookup.new
 
-        CSV.foreach(input_csv, headers: true).each do |donation|
+        CSV.parse(input_csv, headers: true).each do |donation|
             
             # donator unknown
             donator = nil
@@ -64,7 +64,7 @@ class BankPaymentImportWorker
 
         TransactionalMail.send_email(
             to: [email],
-            subject: "Wynik importu wplat recznych dla #{name}",
+            subject: "Wynik importu wplat recznych z #{timestamp}",
             body: 'No elo,',
             from: "#{Settings.app.org_title} <#{Settings.options.default_mailing_from_email}>",
             source: 'identity:email-csv',
