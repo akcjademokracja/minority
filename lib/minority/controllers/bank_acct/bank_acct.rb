@@ -14,8 +14,10 @@ Tempora38::App.controllers :'bank_acct' do
 
     post '/import' do
 
+        # {message: "Not authorized."} unless params[:email].match(/(.+)@akcjademokracja.pl/)
+
         if params[:file] && params[:file][:type] == "text/csv" && params[:email]
-            input_csv = params[:file][:tempfile].read
+            input_csv_file = params[:file][:tempfile]
             email = params[:email]
         else
             {error: "No file/file is not CSV or no email given"}.to_json
@@ -23,7 +25,7 @@ Tempora38::App.controllers :'bank_acct' do
 
         password = SecureRandom.hex(16)
 
-        BankPaymentImportWorker.perform_async(input_csv, password, email)
+        BankPaymentImportWorker.perform_async(input_csv_file, password, email)
 
         {message: "W przeciągu kilku minut dostaniesz emaila z wynikiem na podany adres. Hasło do otwarcia pliku to: #{password}"}.to_json
     end

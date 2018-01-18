@@ -3,8 +3,10 @@ require_relative './identity_lookup.rb'
 class BankPaymentImportWorker
     include Sidekiq::Worker
 
-    def perform(input_csv, password, email)
+    def perform(input_csv_file, password, email)
         identity = IdentityLookup.new
+
+        input_csv = input_csv_file.read
 
         CSV.parse(input_csv, headers: true).each do |donation|
             
