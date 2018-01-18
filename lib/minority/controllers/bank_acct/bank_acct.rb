@@ -15,7 +15,7 @@ Tempora38::App.controllers :'bank_acct' do
     post '/import' do
 
         if params[:file] && params[:file][:type] == "text/csv" && params[:email]
-            input_csv = params[:file][:tempfile]
+            input_csv = params[:file][:tempfile].read
             email = params[:email]
         else
             {error: "No file/file is not CSV or no email given"}.to_json
