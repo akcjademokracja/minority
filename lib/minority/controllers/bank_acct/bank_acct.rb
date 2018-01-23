@@ -7,26 +7,24 @@ Tempora38::App.controllers :'bank_acct' do
     end
 
     get '/import' do
-      template = open(File.expand_path("../../../views/bank_acct/import.erb", __FILE__))
-      view = ERB.new(template.read())
-      view.result()
+        generate_s3_token
+        b = binding 
+        b.local_variable_set(:s3_direct_post, @s3_direct_post)
+        template = open(File.expand_path("../../../views/bank_acct/import.erb", __FILE__))
+        view = ERB.new(template.read())
+        view.result(b)
     end
 
     post '/import' do
-
-        # {message: "Not authorized."} unless params[:email].match(/(.+)@akcjademokracja.pl/)
-
+        url = params['file_url']
+        email = params["email"]
         if params[:file] && params[:file][:type] == "text/csv" && params[:email]
-            input_csv_file = params[:file][:tempfile]
             email = params[:email]
         else
             {error: "No file/file is not CSV or no email given"}.to_json
         end
-
         password = SecureRandom.hex(16)
-
-        BankPaymentImportWorker.perform_async(input_csv_file, password, email)
-
+        BankPaymentImportWorker.perform_async(url, password, email)
         {message: "W przeciągu kilku minut dostaniesz emaila z wynikiem na podany adres. Hasło do otwarcia pliku to: #{password}"}.to_json
     end
 

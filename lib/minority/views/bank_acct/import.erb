@@ -6,11 +6,16 @@
         <h1>Ręczne wpłaty na konto -> Identity</h1>
         <p>Wybierz plik CSV i kliknij przycisk "Send CSV", po czym poczekaj (dłuższą) chwilę na plik wynikowy. Plik CSV musi mieć określony format; w razie wątpliwości pobierz przykładowy plik używając przycisku "Generate template".</p>
         <hr></hr>
-        <form action="/bank_acct/import" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file">
-            <input type="text" name="email">
-            <input type="submit" value="Send CSV">
-        </form>
+        <div class="col-md-6 col-xs-12 col-sm-12 col-lg-6">
+            <form class="import-csv" action="/bank_acct/import" method="POST">
+                <input type="file" name="csv" />
+                    <input type="text" name="email">
+                    <div class="btn-group">
+                        <input type="submit" class="btn btn-success hidden submit-csv" value="Submit" />
+                    </div>
+            </form>
+            
+        </div>
         <hr></hr>
         <form action="/bank_acct/generate_template" method="GET">
             <input type="submit" value="Generate template">
@@ -18,3 +23,54 @@
         <hr></hr>
     </body>
 </html>
+
+
+<script>
+ $(function() {
+   $("input:file").each(function(i, input) {
+     var form = $("form.import-csv");
+     var fileUpload = $(input);
+     var progressBar  = $("<div class='bar'></div>");
+     var barContainer = $("<div class='progress'></div>").append(progressBar);
+     fileUpload.after(barContainer);
+     fileUpload.fileupload({
+       fileInput: fileUpload,
+       url: "<%= @s3_direct_post.url %>",
+       type: 'POST',
+       autoUpload: true,
+       paramName: 'file',
+       dataType: 'XML',
+       formData: <%= @s3_direct_post.fields.to_json %>,
+       replaceFileInput: false,
+       progressall: function (e, data) {
+         var progress = parseInt(data.loaded / data.total * 100, 10);
+         progressBar.css('width', progress + '%')
+       },
+       start: function (e) {
+         progressBar.
+           css('background', 'green').
+           css('display', 'block').
+           css('width', '0%').
+           text("Loading...");
+       },
+       done: function(e, data) {
+         progressBar.text("Uploading done");
+
+         var key   = $(data.jqXHR.responseXML).find("Key").text();
+         var url   = '//' + '<%= URI.parse(@s3_direct_post.url).host %>' + '/' + key;
+
+         var input = $("<input />", { type:'hidden', name: 'file_url', value: url })
+         form.append(input);
+
+         $("input.submit-csv").removeClass("hidden");
+         console.log("DONE " + url);
+       },
+       fail: function(e, data) {
+         progressBar.
+            css("background", "red").
+            text("Failed");
+       }
+     });
+   });
+ });
+</script>

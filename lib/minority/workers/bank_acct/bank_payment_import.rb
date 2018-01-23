@@ -3,12 +3,14 @@ require_relative './identity_lookup.rb'
 class BankPaymentImportWorker
     include Sidekiq::Worker
 
-    def perform(input_csv_file, password, email)
+    def perform(url, password, email)
+
+        full_url = url.starts_with?('//') ? "https:#{url}" : url # ensure https at start
+        csv_file = open(URI.encode(full_url), 'r').read.force_encoding('UTF-8')
+
         identity = IdentityLookup.new
 
-        input_csv = input_csv_file.read
-
-        CSV.parse(input_csv, headers: true).each do |donation|
+        CSV.parse(csv_file, headers: true).each do |donation|
             
             # donator unknown
             donator = nil
