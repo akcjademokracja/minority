@@ -48,8 +48,20 @@ class AortaCheckTicketWorker
             puts "unsubscribed"
             new_tags << "wypisano"
           else
+            # Can't unsubscribe members who aren't members, that's quite obvious.
             puts "CANNOT UNSUBSCRIBE THE MEMBER! MEMBER NOT FOUND IN THE DATABASE."
             new_tags << "nie_wypisano"
+
+            # notify of this fact by email
+            TransactionalMail.send_email(
+              to: ["kontakt@akcjademokracja.pl"],
+              from: "Aorta | Akcja Demokracja",
+              subject: "[ERROR] Freshdesk: #{@ticket_id}, błąd wypisywania",
+              body: "Cześć\nNastąpił błąd wypisywania osoby z listy mailingowej; danej osoby nie ma w bazie.\n
+              Sprawa do zbadania <a href=\"https://akcjademokracja.freshdesk.com/helpdesk/tickets/#{ticket_id}\"tutaj</a>.\n
+              Pozdrowienia,\n
+              Automatyczny Organizator Regularnej Transakcji Aktywistycznej"
+            )
           end
         when "Mało pieniędzy"
           print "Adding member to non-donation-asking group... "
@@ -140,7 +152,7 @@ class AortaCheckTicketWorker
         # If the source is not an e-mail, you get errors upon trying to update the ticket. 
         # Thanks FreshDesk!
         new_tags << "aorta_processed"
-        fd_update_ticket_tags(auth, new_tags) unless result[:source].to_i != 1
+        fd_update_ticket_tags(auth, new_tags, member.has_regular_donation?) unless result[:source].to_i != 1
     end
 
     private
@@ -190,17 +202,26 @@ class AortaCheckTicketWorker
         return response.response["status"]
     end
 
-    def fd_update_ticket_tags(auth, new_tags)
+    def fd_update_ticket_tags(auth, new_tags, is_regular_donator)
 
-        # If an opt-out operation was carried out, change the type accordingly
-        unless new_tags.include? "wypisano"
-            request_body = {tags: new_tags}.to_json
-        else
-            request_body = {tags: new_tags, type: "Wypisany", status: 4}.to_json
+        request_body = {}
+
+        # If an opt-out operation was carried out, change the type and status accordingly
+        if new_tags.include? "wypisano"
+          request_body[:type] = "Wypisany"
+          request_body[:status] = 4
         end
 
+        # If the member's a regular donator, assign a higher priority to the ticket
+        if is_regular_donator
+          request_body[:priority] = 3
+        end
+
+        # Finally, add the tags
+        request_body[:tags] = new_tags
+
         # Cost: 1 FreshDesk API credit
-        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{@ticket_id}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body)
+        response = HTTParty.put("https://#{ENV["FRESHDESK_DOMAIN"]}.freshdesk.com/api/v2/tickets/#{@ticket_id}", headers: { 'Content-Type' => 'application/json' }, basic_auth: auth, body: request_body.to_json)
         return false if rate_limit_hit? response
         return true
     end
