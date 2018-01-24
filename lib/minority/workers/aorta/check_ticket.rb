@@ -28,6 +28,8 @@ class AortaCheckTicketWorker
 
         # First, check who we're dealing with, even before opt-out/forget operations
         member = Member.find_by(email: result[:email])
+        # Declare this in advance; this may get changed later
+        is_regular_donator = false
 
         new_tags = []
 
@@ -136,6 +138,7 @@ class AortaCheckTicketWorker
           is_member_subscribed = !member_subscription.nil? and member_subscription.unsubscribed_at.nil?
           first_action = member.actions.any? ? member.actions.first.name.to_slug.transliterate.to_s : "none"
           top_issue = member.issues.any? ? member.issues.group(:name).count.sort_by{|k, v| v}.reverse.to_h.first.join(", ") : "none"
+          is_regular_donator = member.has_regular_donation?
           member_description = "Donated: #{member.donations_count || 0} times; 
           highest: #{member.highest_donation || 0}, 
           subscribed: #{is_member_subscribed}. 
@@ -152,7 +155,7 @@ class AortaCheckTicketWorker
         # If the source is not an e-mail, you get errors upon trying to update the ticket. 
         # Thanks FreshDesk!
         new_tags << "aorta_processed"
-        fd_update_ticket_tags(auth, new_tags, member.has_regular_donation?) unless result[:source].to_i != 1
+        fd_update_ticket_tags(auth, new_tags, is_regular_donator) unless result[:source].to_i != 1
     end
 
     private
