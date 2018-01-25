@@ -3,11 +3,10 @@ require_relative './identity_lookup.rb'
 class BankPaymentImportWorker
     include Sidekiq::Worker
 
-    def perform(aws_obj, password, email)
+    def perform(aws_upload_key, password, email)
         identity = IdentityLookup.new
 
-        csv = aws_obj.get.body
-        p aws_obj.get
+        csv = Aws::S3::Client.new.get_object(key: upload_key, bucket: S3_BUCKET.name).body.read
 
         CSV.parse(csv, headers: true).each do |donation|
             

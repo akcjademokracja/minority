@@ -23,27 +23,18 @@ Tempora38::App.controllers :'bank_acct' do
             {error: "No file/file is not CSV or no email given"}.to_json
         end
 
-        # S3_BUCKET = Aws::S3::Resource.new.bucket(Settings.aws.s3_bucket_name)
-        # def generate_s3_token
-            # @s3_direct_post = S3_BUCKET.presigned_post(
-            # key: "uploads/#{SecureRandom.uuid}/${filename}",
-            # success_action_status: '201',
-            # acl: 'public-read'
-            # )
-        # end
-
         # send the input file to AWS
         upload_key = "uploads/#{SecureRandom.uuid}/#{Time.now.strftime("%Y%m%d_%H%M%S_bank")}.csv"
         aws_obj = S3_BUCKET.put_object(
                 key: upload_key,
-                body: input_csv_file.path, 
+                body: input_csv_file.read, 
                 acl: 'public-read', 
                 expires: Time.now + 10 * 60
         )
 
         password = SecureRandom.hex(16)
 
-        BankPaymentImportWorker.perform_async(aws_obj, password, email)
+        BankPaymentImportWorker.perform_async(aws_upload_key, password, email)
 
         {message: "W przeciągu kilku minut dostaniesz emaila z wynikiem na podany adres. Hasło do otwarcia pliku to: #{password}"}.to_json
     end
