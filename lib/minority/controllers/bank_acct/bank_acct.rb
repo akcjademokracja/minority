@@ -24,9 +24,9 @@ Tempora38::App.controllers :'bank_acct' do
         end
 
         # send the input file to AWS
-        upload_key = "uploads/#{SecureRandom.uuid}/#{Time.now.strftime("%Y%m%d_%H%M%S_bank")}.csv"
+        aws_upload_key = "uploads/#{SecureRandom.uuid}/#{Time.now.strftime("%Y%m%d_%H%M%S_bank")}.csv"
         aws_obj = S3_BUCKET.put_object(
-                key: upload_key,
+                key: aws_upload_key,
                 body: input_csv_file.read, 
                 acl: 'public-read', 
                 expires: Time.now + 10 * 60

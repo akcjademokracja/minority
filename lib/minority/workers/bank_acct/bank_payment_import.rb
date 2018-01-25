@@ -6,7 +6,7 @@ class BankPaymentImportWorker
     def perform(aws_upload_key, password, email)
         identity = IdentityLookup.new
 
-        csv = Aws::S3::Client.new.get_object(key: upload_key, bucket: S3_BUCKET.name).body.read
+        csv = Aws::S3::Client.new.get_object(key: aws_upload_key, bucket: S3_BUCKET.name).body.read
 
         CSV.parse(csv, headers: true).each do |donation|
             
