@@ -1,5 +1,5 @@
 class MailingData < Mustache
   def vocative
-     FirstName.find_by(first_name: @member.first_name).try(:vocative) || @member.first_name
+    FirstName.where("first_name ILIKE ?", @member.first_name).first.try(:vocative) || @member.first_name
   end
 end
