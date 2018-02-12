@@ -57,7 +57,7 @@ class AortaCheckTicketWorker
             # notify of this fact by email
             TransactionalMail.send_email(
               to: ["kontakt@akcjademokracja.pl"],
-              from: "Aorta | #{Settings.app.org_title} <#{Settings.options.default_mailing_from_email}>",
+              from: "Aorta | Akcja Demokracja <#{Settings.options.default_mailing_from_email}>",
               subject: "[ERROR] Freshdesk: #{@ticket_id}, błąd wypisywania",
               body: "Cześć,\nNastąpił błąd wypisywania osoby z listy mailingowej; danej osoby nie ma w bazie.\n
               Sprawa do zbadania <a href=\"https://akcjademokracja.freshdesk.com/helpdesk/tickets/#{@ticket_id}\"tutaj</a>.\n
