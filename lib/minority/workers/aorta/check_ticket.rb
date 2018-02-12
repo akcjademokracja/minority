@@ -60,7 +60,7 @@ class AortaCheckTicketWorker
               from: "Aorta | Akcja Demokracja",
               subject: "[ERROR] Freshdesk: #{@ticket_id}, błąd wypisywania",
               body: "Cześć\nNastąpił błąd wypisywania osoby z listy mailingowej; danej osoby nie ma w bazie.\n
-              Sprawa do zbadania <a href=\"https://akcjademokracja.freshdesk.com/helpdesk/tickets/#{ticket_id}\"tutaj</a>.\n
+              Sprawa do zbadania <a href=\"https://akcjademokracja.freshdesk.com/helpdesk/tickets/#{@ticket_id}\"tutaj</a>.\n
               Pozdrowienia,\n
               Automatyczny Organizator Regularnej Transakcji Aktywistycznej"
             )
