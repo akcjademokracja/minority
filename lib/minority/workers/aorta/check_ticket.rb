@@ -56,7 +56,7 @@ class AortaCheckTicketWorker
 
             # notify of this fact by email
 
-            ticket_link = '<a href="' + "akcjademokracja.freshdesk.com" + "/helpdesk/tickets/#{@ticket_id}" + '">tutaj</a>'
+            ticket_link = '<a href="' + "/helpdesk/tickets/#{@ticket_id}" + '">tutaj</a>'
 
             TransactionalMail.send_email(
               to: ["aorta@akcjademokracja.freshdesk.com"],
