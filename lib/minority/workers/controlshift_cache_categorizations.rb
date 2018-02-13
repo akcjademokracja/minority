@@ -16,6 +16,9 @@ class ControlshiftCacheCategorizationsWorker
   end
 
   def issue_for_category(name)
+    if Settings.csl.category_map.has_key? name.downcase
+      name = Settings.csl.category_map[name.downcase]
+    end
     category = IssueCategory.where("name ILIKE ?", name).first
     if category.nil?
       issue_name = name
