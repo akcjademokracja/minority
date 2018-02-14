@@ -1,4 +1,4 @@
-class Member
+class Member < ActiveRecord::Base
   class GDPR
     def self.optout(member, reason)
       Subscription.all.each do |channel| 
