@@ -76,8 +76,14 @@ class IdentityLookup
 
             # if they don't have an external ID with a bank account number, add that
             unless donator.external_ids.has_key? "bank_acct_no"
-                donator.external_ids["bank_acct_no"] = donation["bank_acct_no"].to_s
+                donator.external_ids["bank_acct_no"] = [donation["bank_acct_no"].to_s]
                 donator.save!
+            else
+                # if they already had some bank account...
+                unless donator.external_ids["bank_acct_no"].include? donation["bank_acct_no"].to_s
+                    donator.external_ids["bank_acct_no"] << donation["bank_acct_no"].to_s
+                    donator.save!
+                end
             end
 
             @csv_result << donation.to_h.values + ["success (email)"]
