@@ -1,6 +1,6 @@
 module Minority
   class Engine < ::Rails::Engine
-    # isolate_namespace Minority
+    isolate_namespace Minority
     initializer "minority", after: :load_config_initializers do |app|
     	Minority.motd
   		Minority.load_files.each do |file|

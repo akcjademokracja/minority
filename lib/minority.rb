@@ -2,7 +2,11 @@ require "minority/engine"
 
 module Minority
 	def self.load_files
-		Dir.chdir(File.join(File.dirname(__FILE__), '..')) { Dir['app/workers/**/*.rb'] + Dir['app/services/**/*.rb'] }
+		Dir.chdir(File.join(File.dirname(__FILE__), '..')) do 
+      %w[workers servies models].map do |d| 
+        Dir["app/#{d}/**/*.rb"]
+      end.reduce :+
+    end
 	end
 
 	def self.motd
