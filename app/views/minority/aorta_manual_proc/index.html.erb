@@ -6,7 +6,7 @@
         <h1>AortaCheckTicketWorker Manual Proc</h1>
         <p>Wpisz tickety do przeprocesowania oddzielone przecinkiem, np. 12345,12346,12347(...)</p>
         <hr></hr>
-        <%= form_tag(aorta_manual_proc_path, method: "post") %>
+        <%= form_tag({action: :queue_tickets}, method: "post") do %>
             <%= label_tag(:ticket_list, "Tickets:") %>
             <%= text_field_tag(:ticket_list) %>
             <%= submit_tag("Process tickets") %>

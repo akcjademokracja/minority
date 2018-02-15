@@ -7,7 +7,7 @@ module Minority
     def index
     end
 
-    def process
+    def queue_tickets
     	tickets = params[:ticket_list].split(",")
     	render status: :bad_request if tickets.empty?
 

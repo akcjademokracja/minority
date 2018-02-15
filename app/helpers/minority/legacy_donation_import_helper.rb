@@ -1,5 +1,5 @@
 module Minority
-  module BankAccountImportHelper
+  module LegacyDonationImportHelper
   	def upload_to_aws(input_csv_file)
         aws_upload_key = "uploads/#{SecureRandom.uuid}/#{Time.now.strftime("%Y%m%d_%H%M%S_bank")}.csv"
         aws_obj = S3_BUCKET.put_object(
@@ -8,6 +8,7 @@ module Minority
                 acl: 'public-read', 
                 expires: Time.now + 10 * 60
         )
+        return aws_upload_key
   	end
   end
 end

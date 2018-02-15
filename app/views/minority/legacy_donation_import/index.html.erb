@@ -6,14 +6,15 @@
         <h1>Ręczne wpłaty na konto -> Identity</h1>
         <p>Wybierz plik CSV i kliknij przycisk "Send CSV", po czym poczekaj (dłuższą) chwilę na plik wynikowy. Plik CSV musi mieć określony format; w razie wątpliwości pobierz przykładowy plik używając przycisku "Generate template".</p>
         <hr></hr>
-        <%= form_for @input do |f| %>
-            File: <%= f.file_field :file %>
-            Email: <%= f.text_field :email%>
+        <%= form_tag({action: :import}, multipart: true) do %>
+            File: <%= file_field_tag 'file' %>
+            Email: <%= text_field_tag 'email'%>
+            <%= submit_tag("Upload") %>
         <% end %>
         <hr></hr>
-        <form action="/bank_acct/generate_template" method="GET">
-            <input type="submit" value="Generate template">
-        </form>
+        <%= form_tag({action: :generate_template}, method: "get") do %>
+            <%= submit_tag("Generate template") %>
+        <% end %>
         <hr></hr>
     </body>
 </html>

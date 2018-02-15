@@ -2,31 +2,32 @@ require_dependency "minority/application_controller"
 require 'csv'
 
 module Minority
-  class BankAccountImportController < ApplicationController
+  class LegacyDonationImportController < ApplicationController
   	before_action :admin_required!
+    helper LegacyDonationImportHelper
 
     def index
     end
 
-    def process
-    	unless params[:input][:file].empty? or params[:input][:email].empty?
-            if params[:input][:file].content_type == "text/csv"
-                input_csv_file = params[:input][:file]
-                email = params[:input][:email]
+    def import
+    	unless params[:file].nil? or params[:email].empty?
+            if params[:file].content_type == "text/csv"
+                input_csv_file = params[:file]
+                email = params[:email]
             else
-                render json: {error: "The file is not CSV"}.to_json, status: :bad_request
+                render json: {error: "The file is not CSV"}, status: :bad_request and return
             end       
         else
-            render json: {error: "No file or no email given"}.to_json, status: :bad_request
+            render json: {error: "No file or no email given"}, status: :bad_request and return
         end
         
-        helpers.upload_to_aws(input_csv_file)
+        aws_upload_key = helpers.upload_to_aws(input_csv_file)
 
         password = SecureRandom.hex(16)
         BankPaymentImportWorker.perform_async(aws_upload_key, password, email)
 
         msg = "W przeciągu kilku minut dostaniesz emaila z wynikiem na podany adres. Hasło do otwarcia pliku to: #{password}"
-        render json: {message: msg}.to_json, status: :ok
+        render json: {message: msg}, status: :ok
     end
 
     def generate_template
