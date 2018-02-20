@@ -28,6 +28,12 @@ class AortaCheckTicketWorker
 
         # First, check who we're dealing with, even before opt-out/forget operations
         member = Member.find_by(email: result[:email])
+
+        # googlemail.com -> gmail.com fix
+        if !member and result[:email].include? "@googlemail.com"
+          member = Member.find_by(result[:email].gsub!("@googlemail.com", "@gmail.com"))
+        end
+        
         # Declare this in advance; this may get changed later
         is_regular_donator = false
 
