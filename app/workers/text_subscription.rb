@@ -1,4 +1,5 @@
-class DonationFromActionWorker
+# Adds sms subscription to people with no subscriptions, but phone number given.
+class TextSubscription
   include Sidekiq::Worker
 
   def perform()
