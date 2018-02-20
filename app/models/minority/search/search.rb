@@ -15,7 +15,17 @@ module Minority
 				if rules.is_a?(Hash)
 					rules['exclude']
 				else
-					{"condition"=>"OR", "rules"=>[{"id"=>"noone", "field"=>"noone", "type"=>"string", "operator"=>"equal", "value"=>"on"}]}
+					{
+						'condition' => 'OR', 
+						'rules' => [
+							{ 'id' => 'members-on-ice', 
+								'field' => 'members-on-ice', 
+								'type' => 'string', 
+								'operator' => 'equal', 
+								'value' => 'on' 
+							}
+						] 
+					}
 				end
 			end
 		end
