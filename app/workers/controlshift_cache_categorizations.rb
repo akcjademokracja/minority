@@ -12,16 +12,16 @@ class ControlshiftCacheCategorizationsWorker
           Rails.cache.write("CSL:category:issue:#{row[:id]}", issue.id)
         end
       end
-
-    def issue_for_category(name)
-      if Settings.csl.category_map.has_key? name.downcase
-        name = Settings.csl.category_map[name.downcase]
-      end
-      category = IssueCategory.where("name ILIKE ?", name).first
-      category.nil? ? issue_name = name : issue_name = "#{name} - inne"
-      return Issue.where("name ILIKE ?", issue_name).first
-    end
-    
     end
   end
+
+  def issue_for_category(name)
+    if Settings.csl.category_map.has_key? name.downcase
+      name = Settings.csl.category_map[name.downcase]
+    end
+    category = IssueCategory.where("name ILIKE ?", name).first
+    category.nil? ? issue_name = name : issue_name = "#{name} - inne"
+    return Issue.where("name ILIKE ?", issue_name).first
+  end
+  
 end
