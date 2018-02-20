@@ -5,12 +5,16 @@ class ControlshiftCacheCategorizationsWorker
     table = open(url, 'r:utf-8')
     csv = SmarterCSV.process(table, chunk_size: 25) do |lines|
       lines.each do |row|
+        link = ControlshiftIssueLink.find_or_initialize_by(id: row[:id])
         issue = issue_for_category row[:name]
         if issue.nil?
-          Rails.cache.write("CSL:category:issue:#{row[:id]}", -1)
+          link.issue_id = -1
+          link.controlshift_tag = ''
         else
-          Rails.cache.write("CSL:category:issue:#{row[:id]}", issue.id)
+          link.issue_id = issue.id
+          link.controlshift_tag = issue.name
         end
+        link.save
       end
     end
   end
@@ -23,5 +27,4 @@ class ControlshiftCacheCategorizationsWorker
     category.nil? ? issue_name = name : issue_name = "#{name} - inne"
     return Issue.where("name ILIKE ?", issue_name).first
   end
-  
 end
