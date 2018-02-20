@@ -34,7 +34,7 @@ class BankPaymentImportWorker
 
                 # don't create duplicate donations
                 if Donation.find_by(external_id: new_donation.external_id) or Donation.find_by(amount: donation["amount"].to_f, member: donator, created_at: DateTime.parse(donation["date"]))
-                    Rails.logger.info("Ignoring duplicate donation #{new_donation.external_id}")
+                    logger.info("Ignoring duplicate donation #{new_donation.external_id}")
                     identity.csv_result << Array.new(donation.to_h.values.count) + ["ignoring duplicate donation #{new_donation.external_id}"]
                 else
                     identity.csv_result << Array.new(donation.to_h.values.count) + ["creating new donation #{new_donation.external_id}"]

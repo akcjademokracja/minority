@@ -58,7 +58,7 @@ class DonationFromActionWorker
     Donation.transaction do
       d = Donation.find_by external_id: donation.external_id
       unless d.nil?
-        Rails.logger.info "Not saving a duplicate donation #{donation.external_id}"
+        logger.info "Not saving a duplicate donation #{donation.external_id}"
         return d
       end
 
