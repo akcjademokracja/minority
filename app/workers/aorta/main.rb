@@ -4,7 +4,13 @@ class AortaMainWorker
     include Sidekiq::Worker
 
     def perform
-      return if ENV['AMQP_URL'].blank?
+
+        ['AMQP_URL', 'FRESHDESK_API_TOKEN', 'FRESHDESK_DOMAIN'].each do |var|
+            unless ENV[var]
+                puts "AortaMainWorker: #{var} undeclared; not doing anything."
+                return
+            end
+        end
 
         # Estabilish a connection first
         begin
