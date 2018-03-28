@@ -165,6 +165,15 @@ class AortaCheckTicketWorker
           fd_update_requester_info(auth, result[:requester_id], member_description)
         end
 
+        # Custom filters
+        money_keywords = [
+          "numer konta", "wpłat", "zleceni", "przelew", "nr konta", "numer konta", "numeru konta",
+          "darowizny", "płatności", "finansowe", "płatność", "płatność", "darowizna", "finansowanie",
+          "darowizn"
+        ]
+
+        new_tags << "pieniądze" if custom_filter(result, money_keywords)
+
         # Update the ticket's tags at the end
         # If the source is not an e-mail, you get errors upon trying to update the ticket. 
         # Thanks FreshDesk!
@@ -194,7 +203,8 @@ class AortaCheckTicketWorker
           type: response["type"],
           tags: response["tags"],
           source: response["source"],
-          to_emails: response["to_emails"]
+          to_emails: response["to_emails"],
+          description_text: response["description_text"]
         }
         return result
     end
@@ -275,6 +285,18 @@ class AortaCheckTicketWorker
 
         return (mailings_by_tags_campaigns + mailings_by_subject_campaigns).map{|tag| tag.to_slug.transliterate.to_s.downcase}.uniq
 
+    end
+
+    def custom_filter(result, keywords)
+      text = result[:description_text].split("kontakt@akcjademokracja.pl")[0]
+
+      keywords.each do |kw|
+        if text.include? kw
+          return true
+        end
+      end
+
+      return false
     end
 
     class FreshDeskRateLimitHit < StandardError
