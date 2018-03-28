@@ -1,12 +1,13 @@
 class ControlshiftCategorizeOneWorker
   include Sidekiq::Worker
   
-  def perform(row)
+  def perform(row, retry=3)
     @row = row
+    @retry = retry
 
     begin
       issue = ControlshiftIssueLink.find(row["category_id"]).issue
-      logger.info("issue id mapping: CSL:category:issue:#{row["category_id"]} = #{issue}")
+      logger.info("issue id mapping: CSL:category:issue:#{row["category_id"]} = #{issue.name}")
 
       action = Action.includes(:campaign).where(
         technical_type: 'cby_petition',
@@ -23,6 +24,8 @@ class ControlshiftCategorizeOneWorker
   end
 
   def try_later
-    ControlshiftCategorizeOneWorker.perform_in(5.minutes, @row)
+    if @retry > 0
+      ControlshiftCategorizeOneWorker.perform_in(5.minutes, @row, @retry - 1)
+    end
   end
 end
