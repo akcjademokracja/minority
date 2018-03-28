@@ -1,9 +1,9 @@
 class ControlshiftCategorizeOneWorker
   include Sidekiq::Worker
   
-  def perform(row, retry=3)
+  def perform(row, retries=3)
     @row = row
-    @retry = retry
+    @retries = retries
 
     begin
       issue = ControlshiftIssueLink.find(row["category_id"]).issue
@@ -24,8 +24,8 @@ class ControlshiftCategorizeOneWorker
   end
 
   def try_later
-    if @retry > 0
-      ControlshiftCategorizeOneWorker.perform_in(5.minutes, @row, @retry - 1)
+    if @retries > 0
+      ControlshiftCategorizeOneWorker.perform_in(5.minutes, @row, @retries - 1)
     end
   end
 end
