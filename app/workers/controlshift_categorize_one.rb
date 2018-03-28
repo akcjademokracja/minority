@@ -5,13 +5,8 @@ class ControlshiftCategorizeOneWorker
     @row = row
 
     begin
-      issue_id = ControlshiftIssueLink.find(row["category_id"]).try(:issue_id)
-      logger.info("issue id mapping: CSL:category:issue:#{row["category_id"]} = #{issue_id}")
-      return if issue_id < 0 # the category has no mapping in issues here.
-
-      issue = Issue.find issue_id
-      logger.info("issue candidate #{issue.try(:name)}")
-      return if issue.nil?
+      issue = ControlshiftIssueLink.find(row["category_id"]).issue
+      logger.info("issue id mapping: CSL:category:issue:#{row["category_id"]} = #{issue}")
 
       action = Action.includes(:campaign).where(
         technical_type: 'cby_petition',
