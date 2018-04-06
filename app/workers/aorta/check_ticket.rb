@@ -24,14 +24,21 @@ class AortaCheckTicketWorker
         return if result[:source].to_i != 1
 
         # Do not process if the ticket e-mail wasn't sent to the "contact" e-mail address
-        return unless result[:to_emails].include? ENV["CONTACT_EMAIL"]
-
+        if result[:to_emails]
+          return unless result[:to_emails].include? ENV["CONTACT_EMAIL"]
+        else
+          # Apparently you can create tickets on Freshdesk itself and they don't have the "to_emails" field.
+          # We don't want to process these.
+          return
+        end
+        
         # First, check who we're dealing with, even before opt-out/forget operations
         member = Member.find_by(email: result[:email])
 
         # googlemail.com -> gmail.com fix
         if !member and result[:email].include? "@googlemail.com"
-          member = Member.find_by(result[:email].gsub!("@googlemail.com", "@gmail.com"))
+          result[:email].gsub!("@googlemail.com", "@gmail.com")
+          member = Member.find_by(result[:email])
         end
         
         # Declare this in advance; this may get changed later
