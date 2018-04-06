@@ -3,12 +3,13 @@ class ControlshiftCacheCategorizationsWorker
 
   def perform(url)
     table = open(url, 'r:utf-8')
+    other_issue = Issue.find_by_name Settings.csl.default_issue
     csv = SmarterCSV.process(table, chunk_size: 25) do |lines|
       lines.each do |row|
         link = ControlshiftIssueLink.find_or_initialize_by(id: row[:id])
         issue = issue_for_category row[:name]
         if issue.nil?
-          link.issue_id = -1
+          link.issue_id = other_issue.id
           link.controlshift_tag = ''
         else
           link.issue_id = issue.id
