@@ -38,7 +38,7 @@ class AortaCheckTicketWorker
         # googlemail.com -> gmail.com fix
         if !member and result[:email].include? "@googlemail.com"
           result[:email].gsub!("@googlemail.com", "@gmail.com")
-          member = Member.find_by(result[:email])
+          member = Member.find_by(email: result[:email])
         end
         
         # Declare this in advance; this may get changed later
