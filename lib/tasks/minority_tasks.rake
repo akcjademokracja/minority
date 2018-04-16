@@ -62,3 +62,31 @@ namespace :action_data do
   end
 
 end
+
+
+namespace :consents do 
+  desc "Create Akcja consents"
+  task create: :environment do
+    puts "Creating gdpr_campaign consent."
+    ConsentText.create!(
+      public_id: 'gdpr_campaign',
+      consent_short_text: 'Wyrażam zgodę na przetwarzanie moich danych w celu przeprowadzenia tylko tej kampanii.',
+      full_legal_text_link: 'https://akcjademokracja.pl'
+    )
+
+    puts "Creating gdpr_all consent."
+    ConsentText.create!(
+      public_id: 'gdpr_all',
+      consent_short_text: 'Wyrażam zgodę na przetwarzanie moich danych w celu informowaniu mnie o innych kampaniach oraz w celu przeprowadzenia tych kampanii, w których zechcę wziąć udział.',
+      full_legal_text_link: 'https://akcjademokracja.pl'
+    )
+
+    puts "Creating comm_2018-04-13 consent."
+    ConsentText.create!(
+      public_id: 'comm_2018-04-13',
+      consent_short_text: 'Wyrażam zgodę na otrzymywanie od fundacji Akcja Demokracja z siedzibą w Warszawie wiadomości e-mail i wiadomości SMS o treści informującej o kampaniach.',
+      full_legal_text_link: 'https://akcjademokracja.pl'
+    )
+    puts "Consents created."
+  end
+end
