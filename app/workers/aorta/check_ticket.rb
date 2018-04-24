@@ -64,27 +64,49 @@ class AortaCheckTicketWorker
             new_tags << "wypisano"
           else
             # Can't unsubscribe members who aren't members, that's quite obvious.
-            puts "CANNOT UNSUBSCRIBE THE MEMBER! MEMBER NOT FOUND IN THE DATABASE."
-            new_tags << "nie_wypisano"
 
-            # notify of this fact by email
+            # There's a workaround, though. We'll scan the incoming e-mail body
+            # for the actual e-mail address the person was trying to unsubscribe
 
-            ticket_link = '<a href="' + "/helpdesk/tickets/#{@ticket_id}" + '">tutaj</a>'
+            # Some people try to unsubscribe their e-mail address "A" by writing from
+            # their "B" e-mail address. Happens way too often
 
-            TransactionalMail.send_email(
-              to: ["aorta@akcjademokracja.freshdesk.com"],
-              from: "Aorta | Akcja Demokracja <#{Settings.options.default_mailing_from_email}>",
-              subject: "[ERROR] Freshdesk: #{@ticket_id}, błąd wypisywania",
-              body: "Cześć,
-              <br></br>
-              Nastąpił błąd wypisywania osoby z listy mailingowej; danej osoby nie ma w bazie.
-              <br></br>
-              Sprawa do zbadania #{ticket_link}.
-              <br></br>
-              Pozdrowienia,
-              <br></br>
-              Automatyczny Organizator Regularnej Transakcji Aktywistycznej"
-            )
+            puts "MEMBER TO UNSUBSCRIBE NOT FOUND IN THE DATABASE. Trying a workaround..."
+
+            unsub_email_regex = /https:\/\/baza.akcjademokracja.pl\/subscriptions\/unsubscribe\?email=(.+?)&/
+            email_to_unsub = result[:description].match(unsub_email_regex)[1]
+
+            email_to_unsub.gsub!("%40", "@") if email_to_unsub.include?("%40")
+
+            member_to_unsub = Member.find_by(email: email_to_unsub)
+
+            if member_to_unsub
+              Member::GDPR.optout(member_to_unsub, "Aorta opt-out, workaround mode")
+              new_tags << "wypisano"
+            else
+              puts "CANNOT UNSUBSCRIBE THE MEMBER! MEMBER NOT FOUND IN THE DATABASE."
+              new_tags << "nie_wypisano"
+
+              # notify of this fact by email
+
+              ticket_link = '<a href="' + "/helpdesk/tickets/#{@ticket_id}" + '">tutaj</a>'
+
+              TransactionalMail.send_email(
+                to: ["aorta@akcjademokracja.freshdesk.com"],
+                from: "Aorta | Akcja Demokracja <#{Settings.options.default_mailing_from_email}>",
+                subject: "[ERROR] Freshdesk: #{@ticket_id}, błąd wypisywania",
+                body: "Cześć,
+                <br></br>
+                Nastąpił błąd wypisywania osoby z listy mailingowej; danej osoby nie ma w bazie.
+                <br></br>
+                Sprawa do zbadania #{ticket_link}.
+                <br></br>
+                Pozdrowienia,
+                <br></br>
+                Automatyczny Organizator Regularnej Transakcji Aktywistycznej"
+              )
+            end
+
           end
         when "Mało pieniędzy"
           print "Adding member to non-donation-asking group... "
@@ -211,6 +233,7 @@ class AortaCheckTicketWorker
           tags: response["tags"],
           source: response["source"],
           to_emails: response["to_emails"],
+          description: response["description"],
           description_text: response["description_text"]
         }
         return result
