@@ -108,42 +108,25 @@ class AortaCheckTicketWorker
             end
 
           end
-        when "Mało pieniędzy"
-          print "Adding member to non-donation-asking group... "
-          if result[:tags].include? "dodano_do_malo_pieniedzy"
-            puts "They've already been added to low money list."
+        when "Mało pieniędzy", "Mniej maili", "Dodanie do listy regularnie wpłacających"
+          lists = {
+            "Mało pieniędzy": "mało pieniędzy",
+            "Mniej maili": "mniej maili",
+            "Dodanie do listy regularnie wpłacających": "Wpłacają Regularnie"
+          }
+
+          tgt_list = lists[result[:type].to_sym]
+          tgt_list_tag = tgt_list.to_slug.transliterate.downcase.to_s.gsub(" ", "_")
+
+          if member
+            new_tags << "dodano_do_#{tgt_list_tag}" if add_member_to_list(member, tgt_list)
+          else
+            # In reality this shouldn't be happening.
+            # I can only think of the situation where the user mistags some ticket
+            # or maybe the inquirer pays by wire transfer and messages from another, non-member e-mail addr.
+            puts "The person isn't a member, somehow. Not adding to list #{tgt_list}."
             return
           end
-          low_money_list = List.find_or_create_by(name: "mało pieniędzy")
-          unless low_money_list.members.include? member
-            low_money_list.add_new_member(member)
-          end
-          new_tags << "dodano_do_malo_pieniedzy"
-          puts "done"
-        when "Mniej maili"
-          print "Adding member to lower mailing count list..."
-          if result[:tags].include? "dodano_do_mniej_maili"
-            puts "They've already been added to low mailing list."
-            return
-          end 
-          low_mailing_list = List.find_or_create_by(name: "mniej maili")
-          unless low_mailing_list.members.include? member
-            low_mailing_list.add_new_member(member)
-          end
-          new_tags << "dodano_do_mniej_maili"
-          puts "done"
-        when "Dodanie do listy regularnie wpłacających"
-          # I wonder if that's necessary?
-          puts "Adding to regular donator list..."
-          if result[:tags].include? "dodano_do_regularnie_wpl"
-            puts "Already marked as regular donators... ignoring"
-            return
-          end
-          regular_donor_list = List.find_or_create_by(name: "Wpłacają Regularnie")
-          unless regular_donor_list.members.include? member
-            regular_donor_list.add_new_member(member)
-          end
-          new_tags << "dodano_do_regularnie_wpl"
         when "Zamiana imienia i nazwiska"
           puts "Fix first name & last name order..."
           if result[:tags].include? "naprawiono_imie_nazwisko"
@@ -315,6 +298,19 @@ class AortaCheckTicketWorker
 
         return (mailings_by_tags_campaigns + mailings_by_subject_campaigns).map{|tag| tag.to_slug.transliterate.to_s.downcase}.uniq
 
+    end
+
+    def add_member_to_list(member, list_name)
+      print "Adding member to #{list_name} list..."
+      tgt_list = List.find_or_create_by(name: list_name)
+      unless tgt_list.members.include? member
+        tgt_list.add_new_member(member)
+      else
+        print " they already belong to that list."
+        return false
+      end
+      print " done."
+      return true
     end
 
     def custom_filter(result, keywords)
