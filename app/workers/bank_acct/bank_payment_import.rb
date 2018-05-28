@@ -8,7 +8,7 @@ class BankPaymentImportWorker
 
         csv = Aws::S3::Client.new.get_object(key: aws_upload_key, bucket: S3_BUCKET.name).body.read
 
-        CSV.parse(csv, headers: true).each do |donation|
+        CSV.parse(csv, headers: true, col_sep: ";").each do |donation|
             
             # donator unknown
             donator = nil
@@ -21,7 +21,6 @@ class BankPaymentImportWorker
             donator = identity.locate_by_name(donation, donation["name"], donation["address"]) unless donator or donation["name"].nil?
 
             # by that point, the donator should be known
-            p donator
             if donator
                 # create donations
                 new_donation = Donation.new({
@@ -34,40 +33,41 @@ class BankPaymentImportWorker
 
                 # don't create duplicate donations
                 if Donation.find_by(external_id: new_donation.external_id) or Donation.find_by(amount: donation["amount"].to_f, member: donator, created_at: DateTime.parse(donation["date"]))
-                    logger.info("Ignoring duplicate donation #{new_donation.external_id}")
+                    Rails.logger.info("Ignoring duplicate donation #{new_donation.external_id}")
                     identity.csv_result << Array.new(donation.to_h.values.count) + ["ignoring duplicate donation #{new_donation.external_id}"]
                 else
                     identity.csv_result << Array.new(donation.to_h.values.count) + ["creating new donation #{new_donation.external_id}"]
                     new_donation.save!
                 end
             else
-                puts "Donator not found."
+                Rails.logger.info("Donator not found.")
                 identity.csv_result << donation.to_h.values + ["the donator hasn't been found!"]
             end
         end
 
         # send identity.csv_result here
 
-        output = CSV.generate do |csv|
+        data = CSV.generate do |csv|
             csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "topic", "status"]
             identity.csv_result.each do |ary|
                 csv << ary
             end
         end
 
-        timestamp = Time.now.utc.strftime("%Y-%m-%d %H_%M_%S")
+        timestamp = Time.now.iso8601.to_s.gsub(':', '')
         zip_filename = "bank_acct-#{timestamp}.zip"
-        
 
-        Zip::Archive.open(zip_filename, Zip::CREATE) do |ar|
-            ar.add_buffer('donations_output.csv', output)
-            ar.encrypt(password)
+        zip_file = Zip::OutputStream.write_buffer(::StringIO.new(''), Zip::TraditionalEncrypter.new(password)) do |zip|
+            zip.put_next_entry("donations_output.csv")
+            zip.write(data)
         end
+        zip_file.rewind
+        File.new(zip_filename, "wb").write(zip_file.sysread)
 
         TransactionalMail.send_email(
             to: [email],
             subject: "Wynik importu wplat recznych z #{timestamp}",
-            body: 'No elo,',
+            body: 'Hej,',
             from: "#{Settings.app.org_title} <#{Settings.options.default_mailing_from_email}>",
             source: 'identity:email-csv',
             files: [

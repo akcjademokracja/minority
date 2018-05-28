@@ -3,14 +3,14 @@ require 'csv'
 
 module Minority
   class LegacyDonationImportController < ApplicationController
-  	before_action :admin_required!
+    before_action :admin_required!
     helper LegacyDonationImportHelper
 
     def index
     end
 
     def import
-    	unless params[:file].nil? or params[:email].empty?
+        unless params[:file].nil? or params[:email].empty?
             if params[:file].content_type == "text/csv"
                 input_csv_file = params[:file]
                 email = params[:email]
@@ -31,7 +31,7 @@ module Minority
     end
 
     def generate_template
-    	csv = CSV.generate do |csv|
+        csv = CSV.generate(col_sep: ";") do |csv|
             csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "topic"]
             csv << ["foo@bar.baz", "1337", "MIŚ DUSZATEK", "UL. SMOGOWA 13/37 41-999 KRAKÓW", "2017-09-25", "0.05", "A1234567", "statutowe"]
         end

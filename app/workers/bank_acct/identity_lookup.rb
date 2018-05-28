@@ -9,9 +9,17 @@ class IdentityLookup
     end 
 
     def locate_by_bank_acct_no(donation, bank_acct_no)
-        # a single person can have several accounts in Identity; we'll assign the donation to their most recent one
         puts "Locating member #{donation["name"]} by bank_acct: #{bank_acct_no}"
-        donator = Member.where("external_ids ->> '#{bank_acct_no}' = '9999'").order(updated_at: :desc).first
+        # a single person can have several accounts in Identity; we'll assign the donation to their most recent one
+        donator = Member
+                  .joins(:member_external_ids)
+                  .where(member_external_ids: {
+                                                system: 'bank_acct_no', 
+                                                external_id: bank_acct_no
+                                              })
+                  .order(updated_at: :desc)
+                  .first
+
         @csv_result << donation.to_h.values + ["success (bank_acct_no)"] if donator
         return donator
     end
@@ -42,6 +50,8 @@ class IdentityLookup
 
         # there can be a couple of people by the same name, differentiate by postcodes
         if people.count > 1
+            return nil unless address
+
             postcode = address.scan(/[0-9]{2}-[0-9]{3}/).first
             puts "The postcode is #{postcode}."
 
@@ -75,16 +85,16 @@ class IdentityLookup
             donator = Member.find_by(email: email)
 
             # if they don't have an external ID with a bank account number, add that
-            unless donator.external_ids.has_key? "bank_acct_no"
-                donator.external_ids["bank_acct_no"] = [donation["bank_acct_no"].to_s]
-                donator.save!
-            else
-                # if they already had some bank account...
-                unless donator.external_ids["bank_acct_no"].include? donation["bank_acct_no"].to_s
-                    donator.external_ids["bank_acct_no"] << donation["bank_acct_no"].to_s
-                    donator.save!
-                end
+            bank_acct_no = donation["bank_acct_no"].to_s
+            unless donator.member_external_ids.where(system: "bank_acct_no", external_id: bank_acct_no)
+                MemberExternalId.create!(
+                    member: donator,
+                    system: "bank_acct_no",
+                    external_id: bank_acct_no
+                )
             end
+
+            donator.reload
 
             @csv_result << donation.to_h.values + ["success (email)"]
             return donator
