@@ -81,3 +81,18 @@ namespace :consents do
                              })
   end
 end
+
+namespace :csl do
+  desc "Link CSL consents to ConsentTexts"
+  task link_consents: :environment do
+    ControlshiftConsent.all.each do |csc|
+      ct = ConsentText.find_by(public_id: csc.controlshift_consent_external_id.split("-").last)
+
+      ControlshiftConsentMapping.create!(
+        consent_text: ct, 
+        controlshift_consent: csc
+        # XXX incomplete, consult the ControlshiftConsentMapping model
+      )
+    end
+  end
+end
