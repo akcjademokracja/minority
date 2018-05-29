@@ -21,5 +21,7 @@ module Minority
                          `..:%.:::.7.'
                            `"""""""'
 				]
+        puts
+        puts "Minority rev." + " " + `git rev-parse --short HEAD`.strip
 	end
 end
