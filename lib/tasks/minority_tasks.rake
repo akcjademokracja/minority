@@ -91,6 +91,11 @@ namespace :csl do
       ControlshiftConsentMapping.create!(
         consent_text: ct, 
         controlshift_consent: csc
+        method: "radio_button",
+        opt_in_option: "tak!",
+        opt_in_level: "explicit_opt_in",
+        opt_out_option: "nie :-(",
+        opt_out_level: "none_given"
         # XXX incomplete, consult the ControlshiftConsentMapping model
       )
     end
