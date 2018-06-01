@@ -86,7 +86,16 @@ namespace :csl do
   desc "Link CSL consents to ConsentTexts"
   task link_consents: :environment do
     ControlshiftConsent.all.each do |csc|
-      ct = ConsentText.find_by(public_id: csc.controlshift_consent_external_id.split("-").last)
+
+      next if csc.controlshift_consent_external_id.nil?
+
+      pub_id = csc.controlshift_consent_external_id.split("-").last
+
+      ct = ConsentText.find_by(public_id: pub_id)
+      unless ct
+        puts "Can't find ConsentText by public_id: #{pub_id}"
+        next
+      end
 
       ControlshiftConsentMapping.create!(
         consent_text: ct, 
