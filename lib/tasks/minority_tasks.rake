@@ -107,6 +107,8 @@ namespace :csl do
         opt_out_level: "none_given"
         # XXX incomplete, consult the ControlshiftConsentMapping model
       )
+
+      puts "Mapped CSL #{csc.controlshift_consent_external_id} to #{ct.public_id}"
     end
   end
 end
