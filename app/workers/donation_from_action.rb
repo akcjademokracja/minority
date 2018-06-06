@@ -8,7 +8,7 @@ class DonationFromActionWorker
                     where({
                             id: member_action_id,
                             actions: {
-                              action_type: 'donate'
+                              action_type: ['donate', 'regular_donate']
                             }
                           }).first
     return if member_action.nil?
@@ -78,6 +78,8 @@ class DonationFromActionWorker
   end
 
   def update_regular_donation(donation, member_action)
+    return unless member_action.action.action_type == 'regular_donate'
+
     recurring_id = member_action.member_action_datas.by_key(:recurring_id).first.to_s
     unless recurring_id.blank?
       rd = RegularDonation.
