@@ -31,8 +31,6 @@ They could hopefully become mainstream one day. Before this happens, though, the
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
-
-  spec.post_install_message = "Minority at: #{`git rev-parse --short HEAD`.strip}"
 end
 
 
