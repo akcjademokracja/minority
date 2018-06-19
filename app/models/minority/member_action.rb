@@ -10,4 +10,4 @@ module Minority
   end
 end
 
-MemberAction.include Minority::MemberAction
+# MemberAction.include Minority::MemberAction
