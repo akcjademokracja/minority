@@ -1,4 +1,4 @@
-class Ghostbuster
+class GhostbusterWorker
   include Sidekiq::Worker
 
   def perform
