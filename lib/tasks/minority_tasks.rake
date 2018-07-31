@@ -112,3 +112,23 @@ namespace :csl do
     end
   end
 end
+
+namespace :gdpr do
+  desc "Ghost members of a list"
+  task ghost_members: :environment do
+    unless ENV["LIST_ID"]
+        puts "No list specified. Specify the list ID with `LIST_ID=<list_id>`"
+        exit
+    end
+
+    l = List.find(ENV["LIST_ID"].to_i)
+
+    puts "Selected list: #{l.id}: #{l.name}, #{l.members.count} members. Continue? y/n"
+    exit unless STDIN.gets.chomp == "y"
+
+    l.members.each do |m|
+      puts "Ghosting #{m.first_name} #{m.last_name[0]}. (#{m.id})"
+      m.ghost_member
+    end
+  end
+end

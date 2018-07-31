@@ -181,7 +181,7 @@ class AortaCheckTicketWorker
         money_keywords = [
           "numer konta", "wpłat", "zleceni", "przelew", "nr konta", "numer konta", "numeru konta",
           "darowizny", "płatności", "finansowe", "płatność", "płatność", "darowizna", "finansowanie",
-          "darowizn"
+          "darowizn", "cykliczna płatność", "PayU", "anulowanie płatności"
         ]
 
         new_tags << "pieniądze" if custom_filter(result, money_keywords)
@@ -252,9 +252,10 @@ class AortaCheckTicketWorker
           request_body[:status] = 4
         end
 
-        # If the member's a regular donator, assign a higher priority to the ticket
+        # If the member's a regular donator, assign a higher priority to the ticket and add "donator" to tags
         if is_regular_donator
           request_body[:priority] = 3
+          new_tags << "donator"
         end
 
         # Finally, add the tags
@@ -317,7 +318,7 @@ class AortaCheckTicketWorker
       text = result[:description_text].split("kontakt@akcjademokracja.pl")[0]
 
       keywords.each do |kw|
-        if text.include? kw
+        if text.match /#{kw}/i
           return true
         end
       end
