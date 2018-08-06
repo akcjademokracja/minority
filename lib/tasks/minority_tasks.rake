@@ -133,8 +133,12 @@ namespace :gdpr do
     puts
 
     l.members.each do |m|
-      puts "Ghosting #{m.first_name} #{m.last_name ? m.last_name[0] : "?"}. (#{m.id})"
-      m.ghost_member
+      begin
+        puts "Ghosting #{m.first_name} #{m.last_name ? m.last_name[0] : "?"}. (#{m.id})"
+        m.ghost_member
+      rescue Member::GhostingError => e
+        puts "Ghosting error! #{e.message}. Continuing..."
+      end
     end
   end
 end
