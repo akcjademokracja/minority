@@ -32,7 +32,7 @@ module Minority
 
     def generate_template
         csv = CSV.generate(col_sep: ";") do |csv|
-            csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "topic"]
+            csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "payment_title", "topic"]
             csv << ["foo@bar.baz", "1337", "MIŚ DUSZATEK", "UL. SMOGOWA 13/37 41-999 KRAKÓW", "2017-09-25", "0.05", "A1234567", "statutowe"]
         end
 
