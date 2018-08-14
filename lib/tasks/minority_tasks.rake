@@ -124,6 +124,7 @@ namespace :gdpr do
     l = List.find(ENV["LIST_ID"].to_i)
 
     puts "Selected list: #{l.id}: #{l.name}, #{l.members.count} members."
+    puts "Chunk size: #{ENV["CHUNK_SIZE"] || 30}"
     puts "Starting in 5 seconds."
     5.downto(1).each_with_index do |i|
       print "#{i}... "
@@ -132,7 +133,7 @@ namespace :gdpr do
     print "Starting!"
     puts
 
-    l.members.each do |m|
+    l.members.each_slice(ENV["CHUNK_SIZE"] || 30) do |m|
       ActiveRecord::Base.connection.transaction do 
         begin
           puts "Ghosting #{m.first_name} #{m.last_name ? m.last_name[0] : "?"}. (#{m.id})"
