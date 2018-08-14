@@ -133,13 +133,15 @@ namespace :gdpr do
     print "Starting!"
     puts
 
-    l.members.each_slice(ENV["CHUNK_SIZE"] || 30) do |m|
-      ActiveRecord::Base.connection.transaction do 
-        begin
-          puts "Ghosting #{m.first_name} #{m.last_name ? m.last_name[0] : "?"}. (#{m.id})"
-          m.ghost_member
-        rescue Member::GhostingError => e
-          puts "Ghosting error! #{e.message}. Continuing..."
+    l.members.each_slice(ENV["CHUNK_SIZE"] || 30) do |chunk|
+      chunk.each do |m|
+        ActiveRecord::Base.connection.transaction do
+          begin
+            puts "Ghosting #{m.first_name} #{m.last_name ? m.last_name[0] : "?"}. (#{m.id})"
+            m.ghost_member
+          rescue Member::GhostingError => e
+            puts "Ghosting error! #{e.message}. Continuing..."
+          end
         end
       end
     end
