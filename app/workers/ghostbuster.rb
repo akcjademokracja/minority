@@ -4,6 +4,8 @@ class GhostbusterWorker
   def perform
     Member.all.each_slice(Settings.ghoster.worker.chunk_size || 30) do |chunk|
       chunk.each do |m|
+        next if m.role.present?
+
         # Can't anonymize any donators, really.
         # Also not anonymizing subscribed people.
         next if m.donations.count >= 1 or m.subscribed?
