@@ -1,3 +1,4 @@
+# coding: utf-8
 require_relative './identity_lookup.rb'
 
 class BankPaymentImportWorker
@@ -11,35 +12,35 @@ class BankPaymentImportWorker
       donator = identity.locate(donation)
 
       is_regular_donation = heuristics(donation["title_line"])
-    end
 
-    if donator
-      # create Donation
+      if donator
+        # create Donation
 
-      new_donation = Donation.new({
-        amount: donation["amount"].to_f,
-        member: donator, 
-        external_id: donation["transaction_id"].to_s,
-        external_source: "konto",
-        created_at: DateTime.parse(donation["date"])
-      })
+        new_donation = Donation.new({
+                                      amount: donation["amount"].to_f,
+                                      member: donator, 
+                                      external_id: donation["transaction_id"].to_s,
+                                      external_source: "konto",
+                                      created_at: DateTime.parse(donation["date"])
+                                    })
 
-      if Donation.find_by(external_id: new_donation.external_id) or Donation.find_by(amount: donation["amount"].to_f, member: donator, created_at: DateTime.parse(donation["date"]))
-        Rails.logger.info("Ignoring duplicate donation #{new_donation.external_id}")
-        identity.csv_result << Array.new(donation.to_h.values.count + 1) + ["ignoring duplicate donation #{new_donation.external_id}"]
+        if Donation.find_by(external_id: new_donation.external_id) or Donation.find_by(amount: donation["amount"].to_f, member: donator, created_at: DateTime.parse(donation["date"]))
+          Rails.logger.info("Ignoring duplicate donation #{new_donation.external_id}")
+          identity.csv_result << Array.new(donation.to_h.values.count + 1) + ["ignoring duplicate donation #{new_donation.external_id}"]
+        else
+          identity.csv_result << Array.new(donation.to_h.values.count + 1) + ["creating new donation #{new_donation.external_id}"]
+          new_donation.save!
+        end
+
+        # XXX create regular donations
+        new_rdonation = RegularDonation.find_or_create_by!(
+          member: donator,
+          source: "konto",
+        ) if is_regular_donation
       else
-        identity.csv_result << Array.new(donation.to_h.values.count + 1) + ["creating new donation #{new_donation.external_id}"]
-        new_donation.save!
+        Rails.logger.info("Donator not found.")
+        identity.csv_result << donation.to_h.values + ["the donator hasn't been found!"]
       end
-
-      # XXX create regular donations
-      new_rdonation = RegularDonation.find_or_create_by!(
-        member: donator,
-        source: "konto",
-      ) if is_regular_donation
-    else
-      Rails.logger.info("Donator not found.")
-      identity.csv_result << donation.to_h.values + ["the donator hasn't been found!"]
     end
 
     # preparing data for export

@@ -7,9 +7,8 @@ module Minority
     		FirstName.where("first_name ILIKE ?", @member.first_name).first.try(:vocative) || @member.first_name
   		end
   	end
-  	
   end
 end
 
-# add the functions above to main MailingData model 
+# add the functions above to main MailingData model
 MailingData.include Minority::MailingDataVocative
