@@ -181,7 +181,7 @@ class AortaCheckTicketWorker
         money_keywords = [
           "numer konta", "wpłat", "zleceni", "przelew", "nr konta", "numer konta", "numeru konta",
           "darowizny", "płatności", "finansowe", "płatność", "płatność", "darowizna", "finansowanie",
-          "darowizn", "cykliczna płatność", "PayU", "anulowanie płatności"
+          "darowizn", "cykliczna płatność", "PayU", "anulowanie płatności", "bank"
         ]
 
         new_tags << "pieniądze" if custom_filter(result, money_keywords)
