@@ -12,9 +12,8 @@ class IdentityLookup
 
     ["bank_acct_no", "name", "email"].map(&expand_fnames).dup do |m|
       donator = self.call(m, donation)
-      break if donator
+      return donator if donator
     end
-    donator
   end
 
   private
