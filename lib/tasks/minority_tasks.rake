@@ -22,22 +22,22 @@ namespace :action_data do
         field_from_db = a.send(field)
         field_from_csv = imported_action[field]
 
-        unless field_from_db.eql? field_from_csv
+        unless field_from_csv.empty? or field_from_db.eql? field_from_csv
           a.update(field.to_sym => field_from_csv)
         end
       end
 
       if imported_action["campaign"]
-        unless a.campaign.name.eql? imported_action["campaign"]
-          new_c_id = Campaign.find_by(name: imported_action["campaign"]).id
-          a.update(campaign_id: new_c_id)
+        c = Campaign.find_or_create_by(name: imported_action["campaign"])
+        if a.campaign.nil? or a.campaign.id != c.id
+          a.campaign = c
         end
       end
 
       if imported_action["issue"]
         if a.campaign.issue.nil? or a.campaign.issue.name != imported_action["issue"]
           fixed_issue = Issue.find_by(name: imported_action["issue"])
-          a.campaign.update(issue_id: fixed_issue.id) unless fixed_issue.nil?
+          a.campaign.issue = fixed_issue unless fixed_issue.nil?
         end
       end
 
