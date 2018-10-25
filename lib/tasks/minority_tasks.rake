@@ -41,7 +41,7 @@ namespace :action_data do
         end
       end
 
-      puts "#{orig_name} updated."
+      puts "#{orig_name} updated." if a.changed?
 
     end
 
