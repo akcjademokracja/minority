@@ -36,13 +36,16 @@ namespace :action_data do
 
       if imported_action["issue"]
         if a.campaign.issue.nil? or a.campaign.issue.name != imported_action["issue"]
-          fixed_issue = Issue.find_by(name: imported_action["issue"])
-          a.campaign.issue = fixed_issue unless fixed_issue.nil?
+          issue_name = imported_action["issue"].capitalize
+          fixed_issue = Issue.find_by(name: issue_name)
+          raise "No issue #{imported_action['issue']}" if fixed_issue.nil?
+          a.campaign.issue = fixed_issue
+          a.campaign.save if a.campaign.changed?
         end
       end
 
-      puts "#{orig_name} updated." if a.changed?
-
+      a.save if a.changed?
+      puts "#{a.id} #{orig_name} updated." if a.changed?
     end
 
     puts "Operation finished."
@@ -53,9 +56,9 @@ namespace :action_data do
     action_data = [].append(["created_at", "id", "name", "action_type", "campaign", "issue", "description", "external_id"])
     Action.all.each do |a|
       action_data << [a.created_at, a.id, a.name, 
-                      a.action_type, a.campaign.try(:name) || "", 
-                      a.try(:campaign).try(:issue).try(:name) || "", 
-                      a.description, a.external_id]
+                      a.action_type, (a.campaign.try(:name) || '').replace('"',''),
+                      a.try(:campaign).try(:issue).try(:name) || "",
+                      a.description.replace('"',''), a.external_id]
     end
 
     IO.write("action_data.csv", action_data.map(&:to_csv).join)
