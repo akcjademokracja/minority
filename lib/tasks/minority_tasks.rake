@@ -22,7 +22,7 @@ namespace :action_data do
         field_from_db = a.send(field)
         field_from_csv = imported_action[field]
 
-        unless field_from_csv.nil? or field_from_db.eql? field_from_csv
+        unless field_from_csv.nil? or field_from_csv.empty? or field_from_db.eql? field_from_csv
           a.update(field.to_sym => field_from_csv)
         end
       end
