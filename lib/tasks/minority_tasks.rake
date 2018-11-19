@@ -9,12 +9,12 @@ require 'csv'
 namespace :action_data do
   desc "Import fixed CSV data"
   task import: :environment do
-    unless ENV["fpath"]
-        puts "No file given. Specify the file path with `fpath=*.csv`"
-        exit
-    end
+    # unless ENV["fpath"]
+    #     puts "No file given. Specify the file path with `fpath=*.csv`"
+    #     exit
+    # end
 
-    CSV.foreach(ENV["fpath"], headers: true) do |imported_action|
+    CSV.foreach(ENV["fpath"] || '/dev/stdin', headers: true) do |imported_action|
       a = Action.find(imported_action["id"].to_i)
       orig_name = a.name
 
@@ -34,7 +34,7 @@ namespace :action_data do
         end
       end
 
-      if imported_action["issue"]
+      if imported_action["issue"].present?
         if a.campaign.issue.nil? or a.campaign.issue.name != imported_action["issue"]
           issue_name = imported_action["issue"].capitalize
           fixed_issue = Issue.find_by(name: issue_name)
@@ -56,13 +56,14 @@ namespace :action_data do
     action_data = [].append(["created_at", "id", "name", "action_type", "campaign", "issue", "description", "external_id"])
     Action.all.each do |a|
       action_data << [a.created_at, a.id, a.name, 
-                      a.action_type, (a.campaign.try(:name) || '').replace('"',''),
+                      a.action_type, (a.campaign.try(:name) || '').gsub('"',''),
                       a.try(:campaign).try(:issue).try(:name) || "",
-                      a.description.replace('"',''), a.external_id]
+                      a.description.gsub('"',''), a.external_id]
     end
 
-    IO.write("action_data.csv", action_data.map(&:to_csv).join)
-    puts "#{action_data.count - 1} actions exported."
+    STDOUT.write action_data.map(&:to_csv).join
+    # IO.write("action_data.csv", action_data.map(&:to_csv).join)
+    # puts "#{action_data.count - 1} actions exported."
   end
 
 end
