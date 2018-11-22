@@ -25,7 +25,7 @@ class AortaCheckTicketWorker
 
         # Do not process if the ticket e-mail wasn't sent to the "contact" e-mail address
         if result[:to_emails]
-          return unless result[:to_emails].include? ENV["CONTACT_EMAIL"]
+          return unless result[:to_emails].any? { |a| a.include? ENV["CONTACT_EMAIL"] }
         else
           # Apparently you can create tickets on Freshdesk itself and they don't have the "to_emails" field.
           # We don't want to process these.
