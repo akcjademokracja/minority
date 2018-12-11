@@ -16,12 +16,18 @@ class BankPaymentImportWorker
       if donator
         # create Donation
 
+        begin
+          dt = DateTime.parse(donation["date"])
+        rescue StandardError => e
+          Rails.logger.error("Bad date format #{donation['date']}: #{e.message}")
+          next
+        end
         new_donation = Donation.new({
                                       amount: donation["amount"].to_f,
                                       member: donator, 
                                       external_id: donation["transaction_id"].to_s,
                                       external_source: "konto",
-                                      created_at: DateTime.parse(donation["date"])
+                                      created_at: dt
                                     })
 
         if Donation.find_by(external_id: new_donation.external_id) or Donation.find_by(amount: donation["amount"].to_f, member: donator, created_at: DateTime.parse(donation["date"]))

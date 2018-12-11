@@ -8,12 +8,13 @@ class IdentityLookup
   end
 
   def locate(donation)
-    expand_fnames = lambda {|fn| fn.prepend("locate_by_")}
-
-    ["bank_acct_no", "name", "email"].map(&expand_fnames).dup do |m|
-      donator = self.call(m, donation)
+    [:locate_by_bank_acct_no,
+     :locate_by_name,
+     :locate_by_email].each do |m|
+      donator = self.send(m, donation)
       return donator if donator
     end
+    nil
   end
 
   private
@@ -89,7 +90,7 @@ class IdentityLookup
       if postcode
         people = people.joins(:addresses).where(addresses: { postcode: postcode })
 
-        if people
+        if people != []
           # the donator we're looking for may be the last person to perform a member action
           donator = people.joins(:member_actions).order(updated_at: :desc).first
           puts "Guessing that the member is #{donator.first_name} #{donator.last_name}, #{donator.email} out of #{people.count} people"
