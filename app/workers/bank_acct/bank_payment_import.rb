@@ -26,7 +26,7 @@ class BankPaymentImportWorker
                                       amount: donation["amount"].to_f,
                                       member: donator, 
                                       external_id: donation["transaction_id"].to_s,
-                                      external_source: "konto",
+                                      medium: "konto",
                                       created_at: dt
                                     })
 
