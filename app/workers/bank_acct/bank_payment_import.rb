@@ -11,7 +11,7 @@ class BankPaymentImportWorker
     CSV.parse(csv, headers: true, col_sep: ";").each do |donation|
       donator = identity.locate(donation)
 
-      is_regular_donation = heuristics(donation["title_line"])
+      is_regular_donation = heuristics(donation["payment_title"])
 
       if donator
         # create Donation
@@ -51,7 +51,7 @@ class BankPaymentImportWorker
 
     # preparing data for export
     data = CSV.generate do |csv|
-      csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "topic", "status"]
+      csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "payment_title", "topic", "status"]
       identity.csv_result.each do |ary|
         csv << ary
       end

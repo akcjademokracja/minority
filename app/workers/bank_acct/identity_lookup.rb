@@ -53,8 +53,9 @@ class IdentityLookup
 
     # now split the full name to first name and last name
     name = name.split(" ")
-    fname = unicode_normalize(name[0])
-    lname = unicode_normalize(name[-1])
+    return nil if name.length < 2
+    fname = unicode_normalize(name[0] || '')
+    lname = unicode_normalize(name[-1] || '')
 
     puts "Locating member #{donation["name"]} by name"
 
