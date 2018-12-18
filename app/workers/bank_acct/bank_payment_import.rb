@@ -58,7 +58,7 @@ class BankPaymentImportWorker
         end
       else
         Rails.logger.info("Donator not found.")
-        identity.csv_result << donation + ["the donator hasn't been found!"]
+        identity.csv_result << donation.to_a.map(&:last) + ["the donator hasn't been found!"]
       end
     end
 

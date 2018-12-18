@@ -42,7 +42,7 @@ class IdentityLookup
                   .order(updated_at: :desc)
                   .first
 
-    @csv_result << donation + ["success (bank_acct_no)"] if donator
+    @csv_result << donation.to_a.map(&:last) + ["success (bank_acct_no)"] if donator
     donator
   end
 
@@ -95,7 +95,7 @@ class IdentityLookup
           # the donator we're looking for may be the last person to perform a member action
           donator = people.joins(:member_actions).order(updated_at: :desc).first
           puts "Guessing that the member is #{donator.first_name} #{donator.last_name}, #{donator.email} out of #{people.count} people"
-          @csv_result << donation + ["success (guessing by name and postcode)"]
+          @csv_result << donation.to_a.map(&:last) + ["success (guessing by name and postcode)"]
           return donator
         else
           puts "Can't guess the donator."
@@ -107,7 +107,7 @@ class IdentityLookup
       end
     else
       puts "Just one person by that name. Exact match."
-      @csv_result << donation + ["success (exact match)"]
+      @csv_result << donation.to_a.map(&:last) + ["success (exact match)"]
       return people.first
     end
   end
@@ -121,7 +121,7 @@ class IdentityLookup
       puts "Located #{donation["name"]} by email: #{email}"
       donator = Member.find_by(email: email)
 
-      @csv_result << donation + ["success (email)"]
+      @csv_result << donation.to_a.map(&:last) + ["success (email)"]
       return donator
     else
       puts "Can't locate #{donation["name"]} by email."
