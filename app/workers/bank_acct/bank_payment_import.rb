@@ -8,7 +8,10 @@ class BankPaymentImportWorker
     identity = IdentityLookup.new
     csv = Aws::S3::Client.new.get_object(key: aws_upload_key, bucket: S3_BUCKET.name).body.read
 
+    @csv_headers = nil
+
     CSV.parse(csv, headers: true, col_sep: ";").each do |donation|
+      @csv_headers = donation.headers if @csv_headers.nil?
       donator = identity.locate(donation)
 
       is_regular_donation = heuristics(donation["payment_title"])
@@ -25,7 +28,7 @@ class BankPaymentImportWorker
         new_donation = Donation.new({
                                       amount: donation["amount"].to_f,
                                       member: donator, 
-                                      external_id: donation["transaction_id"].to_s,
+                                      external_id: donation["transaction_id"],
                                       medium: "konto",
                                       created_at: dt
                                     })
@@ -43,15 +46,25 @@ class BankPaymentImportWorker
           member: donator,
           source: "konto",
         ) if is_regular_donation
+
+        # if they don't have an external ID with a bank account number, add that
+        bank_acct_no = donation["bank_acct_no"]
+        unless donator.member_external_ids.where(system: "bank_acct_no", external_id: bank_acct_no)
+          MemberExternalId.create!(
+            member: donator,
+            system: "bank_acct_no",
+            external_id: bank_acct_no
+          )
+        end
       else
         Rails.logger.info("Donator not found.")
-        identity.csv_result << donation.to_h.values + ["the donator hasn't been found!"]
+        identity.csv_result << donation + ["the donator hasn't been found!"]
       end
     end
 
     # preparing data for export
     data = CSV.generate do |csv|
-      csv << ["email", "bank_acct_no", "name", "address", "date", "amount", "transaction_id", "payment_title", "topic", "status"]
+      csv << @csv_headers + ['status']
       identity.csv_result.each do |ary|
         csv << ary
       end

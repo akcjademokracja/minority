@@ -9,8 +9,8 @@ class IdentityLookup
 
   def locate(donation)
     [:locate_by_bank_acct_no,
-     :locate_by_name,
-     :locate_by_email].each do |m|
+     :locate_by_email,
+     :locate_by_name].each do |m|
       donator = self.send(m, donation)
       return donator if donator
     end
@@ -42,7 +42,7 @@ class IdentityLookup
                   .order(updated_at: :desc)
                   .first
 
-    @csv_result << donation.to_h.values + ["success (bank_acct_no)"] if donator
+    @csv_result << donation + ["success (bank_acct_no)"] if donator
     donator
   end
 
@@ -95,7 +95,7 @@ class IdentityLookup
           # the donator we're looking for may be the last person to perform a member action
           donator = people.joins(:member_actions).order(updated_at: :desc).first
           puts "Guessing that the member is #{donator.first_name} #{donator.last_name}, #{donator.email} out of #{people.count} people"
-          @csv_result << donation.to_h.values + ["success (guessing by name and postcode)"]
+          @csv_result << donation + ["success (guessing by name and postcode)"]
           return donator
         else
           puts "Can't guess the donator."
@@ -107,13 +107,13 @@ class IdentityLookup
       end
     else
       puts "Just one person by that name. Exact match."
-      @csv_result << donation.to_h.values + ["success (exact match)"]
+      @csv_result << donation + ["success (exact match)"]
       return people.first
     end
   end
 
   def locate_by_email(donation)
-    email = donation["email"]
+    email = Cleanser::cleanse_email donation["email"]
     return nil unless email
 
     if Member.exists?(email: email)
@@ -121,18 +121,7 @@ class IdentityLookup
       puts "Located #{donation["name"]} by email: #{email}"
       donator = Member.find_by(email: email)
 
-      # if they don't have an external ID with a bank account number, add that
-      bank_acct_no = donation["bank_acct_no"].to_s
-      unless donator.member_external_ids.where(system: "bank_acct_no", external_id: bank_acct_no)
-        MemberExternalId.create!(
-          member: donator,
-          system: "bank_acct_no",
-          external_id: bank_acct_no
-        )
-      end
-
-      donator.reload
-      @csv_result << donation.to_h.values + ["success (email)"]
+      @csv_result << donation + ["success (email)"]
       return donator
     else
       puts "Can't locate #{donation["name"]} by email."
