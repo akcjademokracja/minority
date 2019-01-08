@@ -45,6 +45,17 @@ module Minority
           input: 'none',
           sql: "SELECT member_id FROM member_actions ma JOIN actions a ON a.id = ma.action_id WHERE a.technical_type = 'cby_petition'",
         },
+        'was-regular-donor' =>
+        {
+          optgroup: 'Donations',
+          id: 'account-donor',
+          label: 'Donated to account in last 2 months',
+          operators: %w[equal not_equal],
+          type: 'string',
+          input: 'none',
+          values: [1],
+          sql: 'SELECT member_id FROM donations WHERE medium = \'konto\' and age(created_at) <= interval \'2 months\''
+        },
       }
 
       included do
