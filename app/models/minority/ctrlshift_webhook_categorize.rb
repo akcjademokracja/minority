@@ -16,4 +16,3 @@ module Minority
   end
 end
 
-CtrlshiftWebhook.include(Minority::CtrlshiftWebhookCategorize)

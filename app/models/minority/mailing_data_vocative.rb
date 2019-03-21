@@ -11,4 +11,3 @@ module Minority
 end
 
 # add the functions above to main MailingData model
-Mailer::MailingData.include Minority::MailingDataVocative

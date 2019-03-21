@@ -8,5 +8,3 @@ module Minority
     end
   end
 end
-
-TextBlastData.include Minority::TextBlastData

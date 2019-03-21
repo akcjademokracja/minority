@@ -33,4 +33,3 @@ module Minority
 	end
 end
 
-Search.include Minority::Search
