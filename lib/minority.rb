@@ -19,7 +19,7 @@ module Minority
     Search.include Minority::Search::UpdateConditionalList
     TextBlastData.include Minority::TextBlastData
     CtrlshiftWebhook.include Minority::CtrlshiftWebhookCategorize
-    Mailer::MailingData.include Minority::MailingDataVocative
+    MailingData.include Minority::MailingDataVocative
     # MemberAction.include Minority::MemberAction
   end
 
