@@ -10,12 +10,7 @@ module Minority
   end
 
   def self.init
-    a = Minority::Search
-    b = Search
-    b.include a
-    # Search.include Minority::Search
     Search.add_filter_group Minority::Search::Filters
-    # Search.include Minority::Search::Filters
     Search.include Minority::Search::UpdateConditionalList
     TextBlastData.include Minority::TextBlastData
     CtrlshiftWebhook.include Minority::CtrlshiftWebhookCategorize
