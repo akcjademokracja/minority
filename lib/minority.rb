@@ -10,11 +10,11 @@ module Minority
   end
 
   def self.init
-    Search.add_filter_group Minority::Search::Filters
-    Search.include Minority::Search::UpdateConditionalList
+    ::Search.add_filter_group Minority::Search::Filters
+    ::Search.include Minority::Search::UpdateConditionalList
     TextBlastData.include Minority::TextBlastData
     CtrlshiftWebhook.include Minority::CtrlshiftWebhookCategorize
-    MailingData.include Minority::MailingDataVocative
+    Mailer::MailingData.include Minority::MailingDataVocative
     # MemberAction.include Minority::MemberAction
   end
 
