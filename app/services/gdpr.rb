@@ -30,5 +30,3 @@ module Minority
 
   end
 end
-
-Member.include Minority::GDPR

@@ -1,3 +1,4 @@
+# XXX unused, remove
 module Minority
   module Search
     module UpdateConditionalList
